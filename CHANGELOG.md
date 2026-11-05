@@ -19,5 +19,6 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/). Wersj
 
 ### Weryfikacja
 
-- Build i testy: **NIEZWERYFIKOWANE** — na maszynie roboczej (Windows 11, bez WSL, CMake, kompilatora i Qt) nie można było ich uruchomić. Sprawdzono tylko `bash -n` skryptów, poprawność JSON presetów oraz brak CR i BOM we wszystkich plikach.
+- Linux Mint 22.3 (VirtualBox; g++ 13.3.0, CMake 3.28.3, Qt 6.4.2, QScintilla 2.14.1): Debug configure/build OK, `ctest` 2/2 PASS, okno sprawdzone ręcznie (działa). Preset `release` i ostrzeżenia przy pełnym przebudowaniu — NIEZWERYFIKOWANE.
+- Na maszynie roboczej (Windows 11, bez narzędzi budowania) sprawdzono tylko `bash -n` skryptów, poprawność JSON presetów oraz brak CR i BOM.
 - Przegląd kodu (subagent `recenzent-kodu`) zamiast kompilacji. Naprawiono: średnik w `REASON_FAILURE_MESSAGE` FindQScintillaQt6 (przerywałby każdą konfigurację); dodano `qt6-qpa-plugins` do zależności; preset testowy `debug-offscreen`; `tests/fixtures/** -text` w `.gitattributes`, by fixture'y CRLF/mixed nie były normalizowane.
