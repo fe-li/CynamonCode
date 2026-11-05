@@ -1,0 +1,6 @@
+# Projekt jest przeznaczony dla Linuksa: pliki tekstowe zawsze z końcami LF,
+# także przy checkoucie na Windows (skrypty .sh nie działają z CRLF).
+* text=auto eol=lf
+
+# Fixture'y testowe (CRLF, mixed, BOM, niepoprawne UTF-8) muszą zachować bajty 1:1.
+tests/fixtures/** -text

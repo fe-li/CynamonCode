@@ -1,0 +1,15 @@
+# Katalogi budowania (CMakePresets.json: build/, build-release/)
+/build/
+/build-*/
+CMakeUserPresets.json
+compile_commands.json
+
+# Pliki IDE i edytorów
+*.user
+*.autosave
+.vscode/
+.idea/
+.cache/
+
+# Lokalne ustawienia Claude Code (współdzielone są tylko .claude/agents/)
+.claude/settings.local.json
