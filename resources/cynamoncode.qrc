@@ -1,0 +1,14 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <!-- Ikony wygenerowane z autorskiego logo CynamonCode (Ikona CynamonCode.png). -->
+    <qresource prefix="/icons">
+        <file alias="cynamoncode-16.png">icons/cynamoncode-16.png</file>
+        <file alias="cynamoncode-24.png">icons/cynamoncode-24.png</file>
+        <file alias="cynamoncode-32.png">icons/cynamoncode-32.png</file>
+        <file alias="cynamoncode-48.png">icons/cynamoncode-48.png</file>
+        <file alias="cynamoncode-64.png">icons/cynamoncode-64.png</file>
+        <file alias="cynamoncode-128.png">icons/cynamoncode-128.png</file>
+        <file alias="cynamoncode-256.png">icons/cynamoncode-256.png</file>
+        <file alias="cynamoncode-512.png">icons/cynamoncode-512.png</file>
+    </qresource>
+</RCC>

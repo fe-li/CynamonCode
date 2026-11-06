@@ -25,6 +25,7 @@ class QTabWidget;
 
 namespace cynamoncode {
 
+class AboutDialog;
 class EditorWidget;
 class FindReplaceDialog;
 
@@ -151,6 +152,7 @@ private:
     QAction *m_findNextAction = nullptr;
     QAction *m_findPreviousAction = nullptr;
     FindReplaceDialog *m_findDialog = nullptr;
+    AboutDialog *m_aboutDialog = nullptr;
     QAction *m_wordWrapAction = nullptr;
     QAction *m_lineNumbersAction = nullptr;
     QAction *m_whitespaceAction = nullptr;

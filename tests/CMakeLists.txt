@@ -33,3 +33,4 @@ cynamoncode_add_qt_test(tst_auto_indent gui gui/tst_auto_indent.cpp cynamoncode_
 cynamoncode_add_qt_test(tst_find_replace gui gui/tst_find_replace.cpp cynamoncode_ui)
 cynamoncode_add_qt_test(tst_external_changes gui gui/tst_external_changes.cpp cynamoncode_ui)
 cynamoncode_add_qt_test(tst_settings_window gui gui/tst_settings_window.cpp cynamoncode_ui)
+cynamoncode_add_qt_test(tst_about gui gui/tst_about.cpp cynamoncode_ui)

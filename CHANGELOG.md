@@ -4,6 +4,13 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/). Wersj
 
 ## [Niewydane]
 
+### Dodano (2026-11-06)
+
+- Menu Pomoc → „O programie CynamonCode…”: logo, nazwa, wersja, autor (Kamil Feliszewski), strona www (www.feliszewski.pl), wersje Qt i QScintilla.
+- Ikona aplikacji z logo CynamonCode (okno, pasek zadań) w rozmiarach 16–512 px.
+- Wersja programu: 0.1.0.
+- Test: `tst_about`.
+
 ### Dodano (E3, 2026-11-06)
 
 - Okno „Znajdź i zamień” (Ctrl+F, Ctrl+H, F3, Shift+F3): wielkość liter, całe wyrazy, wyrażenia regularne z grupami w zamianie, zawijanie; „Zamień wszystkie” cofa się jednym Ctrl+Z.

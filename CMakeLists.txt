@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 
 project(CynamonCode
-    VERSION 0.0.1
+    VERSION 0.1.0
     DESCRIPTION "Lekki edytor tekstu i kodu dla Linuksa"
     LANGUAGES CXX)
 
@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Typ budowania" FORCE)
@@ -34,6 +35,7 @@ endif()
 
 # Logika bez GUI: model dokumentu, pliki, kodowanie, przypadki użycia (tylko Qt6::Core).
 add_library(cynamoncode_core STATIC
+    src/app/AppInfo.h
     src/domain/DocumentState.h
     src/domain/LanguageId.h
     src/domain/LineEnding.h
@@ -62,15 +64,20 @@ target_include_directories(cynamoncode_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/
 target_link_libraries(cynamoncode_core
     PUBLIC Qt6::Core
     PRIVATE cynamoncode_warnings)
+# Wersja z project(VERSION) dla AppInfo (okno „O programie”, QApplication).
+target_compile_definitions(cynamoncode_core PUBLIC CYNAMONCODE_VERSION="${PROJECT_VERSION}")
 
-# Interfejs: okno, karty, edytor QScintilla, dialogi.
+# Interfejs: okno, karty, edytor QScintilla, dialogi; ikony w zasobach Qt.
 add_library(cynamoncode_ui STATIC
+    resources/cynamoncode.qrc
     src/editor/EditorWidget.cpp
     src/editor/EditorWidget.h
     src/editor/SyntaxHighlighter.cpp
     src/editor/SyntaxHighlighter.h
     src/editor/ThemePalette.cpp
     src/editor/ThemePalette.h
+    src/ui/AboutDialog.cpp
+    src/ui/AboutDialog.h
     src/ui/FindReplaceDialog.cpp
     src/ui/FindReplaceDialog.h
     src/ui/MainWindow.cpp
@@ -82,7 +89,6 @@ target_link_libraries(cynamoncode_ui
     PRIVATE cynamoncode_warnings)
 
 add_executable(cynamoncode src/main.cpp)
-target_compile_definitions(cynamoncode PRIVATE CYNAMONCODE_VERSION="${PROJECT_VERSION}")
 target_link_libraries(cynamoncode PRIVATE cynamoncode_ui cynamoncode_warnings)
 
 if(BUILD_TESTING)

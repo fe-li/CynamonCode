@@ -1,8 +1,10 @@
 #include "ui/MainWindow.h"
 
+#include "app/AppInfo.h"
 #include "editor/EditorWidget.h"
 #include "services/LanguageRegistry.h"
 #include "services/SearchService.h"
+#include "ui/AboutDialog.h"
 #include "ui/FindReplaceDialog.h"
 
 #include <QAction>
@@ -27,12 +29,6 @@ namespace cynamoncode {
 
 namespace {
 
-// Nazwa produktu nie podlega tłumaczeniu.
-QString productName()
-{
-    return QStringLiteral("CynamonCode");
-}
-
 // QTabBar traktuje „&” jako skrót klawiszowy — w nazwach plików trzeba go podwoić.
 QString escapeMnemonic(QString text)
 {
@@ -56,6 +52,7 @@ MainWindow::MainWindow(std::unique_ptr<UserPrompts> prompts, std::unique_ptr<QSe
     m_theme = m_editorSettings.theme == QLatin1String("dark") ? ThemeId::Dark : ThemeId::Light;
 
     setObjectName(QStringLiteral("MainWindow"));
+    setWindowIcon(applicationIcon());
     resize(1024, 720);
     if (m_settingsService) {
         const QByteArray geometry = m_settingsService->windowGeometry();
@@ -548,6 +545,17 @@ void MainWindow::createViewAndLanguageMenus()
     QMenu *settingsMenu = menuBar()->addMenu(tr("&Ustawienia"));
     settingsMenu->setObjectName(QStringLiteral("menuSettings"));
     settingsMenu->addAction(m_fontAction);
+
+    QMenu *helpMenu = menuBar()->addMenu(tr("Pomo&c"));
+    helpMenu->setObjectName(QStringLiteral("menuHelp"));
+    QAction *aboutAction = helpMenu->addAction(tr("&O programie %1…").arg(AppInfo::productName()));
+    aboutAction->setObjectName(QStringLiteral("actionAbout"));
+    aboutAction->setMenuRole(QAction::AboutRole);
+    connect(aboutAction, &QAction::triggered, this, [this] {
+        if (!m_aboutDialog)
+            m_aboutDialog = new AboutDialog(this);
+        m_aboutDialog->open(); // modalne dla okna, bez blokującej pętli exec()
+    });
 }
 
 void MainWindow::createSettingsActions(QMenu *viewMenu)
@@ -1063,12 +1071,12 @@ void MainWindow::updateWindowTitle()
 {
     EditorWidget *editor = currentEditor();
     if (!editor) {
-        setWindowTitle(productName());
+        setWindowTitle(AppInfo::productName());
         setWindowModified(false);
         return;
     }
     setWindowTitle(
-        QStringLiteral("%1[*] — %2").arg(displayName(documentIdOf(editor)), productName()));
+        QStringLiteral("%1[*] — %2").arg(displayName(documentIdOf(editor)), AppInfo::productName()));
     setWindowModified(editor->isModified());
 }
 
