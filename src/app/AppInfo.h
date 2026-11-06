@@ -27,4 +27,10 @@ inline QString website()
     return QStringLiteral("https://www.feliszewski.pl");
 }
 
+// Identyfikator SPDX licencji programu (D040); pełny tekst w pliku LICENSE.
+inline QString licenseSpdx()
+{
+    return QStringLiteral("GPL-3.0-or-later");
+}
+
 } // namespace cynamoncode::AppInfo

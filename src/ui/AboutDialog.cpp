@@ -74,6 +74,14 @@ AboutDialog::AboutDialog(QWidget *parent)
     website->setTextInteractionFlags(Qt::TextBrowserInteraction);
     website->setOpenExternalLinks(true);
 
+    auto *license = new QLabel(
+        tr("Licencja: GNU GPL w wersji 3 lub późniejszej (%1). Program jest dostarczany "
+           "bez jakiejkolwiek gwarancji.")
+            .arg(AppInfo::licenseSpdx()),
+        this);
+    license->setObjectName(QStringLiteral("licenseLabel"));
+    license->setWordWrap(true);
+
     auto *libraries = new QLabel(
         tr("Qt %1, QScintilla %2").arg(QString::fromLatin1(qVersion()),
                                        QStringLiteral(QSCINTILLA_VERSION_STR)),
@@ -92,6 +100,7 @@ AboutDialog::AboutDialog(QWidget *parent)
     texts->addWidget(author);
     texts->addWidget(website);
     texts->addSpacing(8);
+    texts->addWidget(license);
     texts->addWidget(libraries);
     texts->addStretch();
 

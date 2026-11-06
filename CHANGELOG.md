@@ -4,6 +4,10 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/). Wersj
 
 ## [Niewydane]
 
+### Dodano (2026-11-06)
+
+- Licencja GPL-3.0-or-later: plik `LICENSE` (oficjalny tekst GNU GPL v3), sekcja w README i informacja w oknie „O programie” (D040).
+
 ### Dodano (E4, 2026-11-06)
 
 - Panel plików: Plik → „Otwórz folder…” (Ctrl+Shift+O), drzewo folderu z filtrem nazw, otwieranie plików dwuklikiem.

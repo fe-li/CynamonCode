@@ -59,6 +59,7 @@ void TestAbout::aboutDialogShowsProgramInfo()
     QVERIFY(text("websiteLabel").contains(QStringLiteral("www.feliszewski.pl</a>")));
     QVERIFY(dialog->findChild<QLabel *>(QStringLiteral("websiteLabel"))->openExternalLinks());
     QVERIFY(text("librariesLabel").contains(QStringLiteral("QScintilla")));
+    QVERIFY(text("licenseLabel").contains(QStringLiteral("GPL-3.0-or-later")));
 
     auto *logo = dialog->findChild<QLabel *>(QStringLiteral("logoLabel"));
     QVERIFY(logo);
