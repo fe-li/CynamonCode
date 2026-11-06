@@ -13,3 +13,4 @@ compile_commands.json
 
 # Lokalne ustawienia Claude Code (współdzielone są tylko .claude/agents/)
 .claude/settings.local.json
+.claude/launch.json

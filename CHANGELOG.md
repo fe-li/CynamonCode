@@ -4,6 +4,10 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/). Wersj
 
 ## [Niewydane]
 
+### Dodano (2026-11-06)
+
+- Strona www programu w `website/` (polska i angielska, statyczna, bez zewnętrznych zasobów) i skrypt `scripts/build-website.sh`, który składa ją z pakietami, archiwum źródeł i sumami SHA-256 do wgrania pod `https://www.feliszewski.pl/cynamoncode/`.
+
 ## [1.0.0] — 2026-11-06
 
 Pierwsza stabilna wersja (E5), tag `v1.0.0`. Zawiera także zmiany z wersji 0.1 i 0.2 opisane niżej.

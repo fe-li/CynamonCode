@@ -64,6 +64,16 @@ sudo apt install ./build-release/pakiety/cynamoncode_1.0.0_amd64.deb
 
 Po instalacji program jest w menu (Akcesoria → CynamonCode) i na liście „Otwórz za pomocą”; pakiet nie zmienia domyślnych programów — robi to dopiero użytkownik w Ustawienia → „Domyślny program dla plików…”. Odinstalowanie: `sudo apt remove cynamoncode`. Opis plików pakietu: `docs/LINUX_MINT.md`.
 
+## Strona www
+
+Statyczna strona programu (polska i angielska) jest w `website/`. Gotowy katalog do wgrania na serwer — strona, ikony, pakiet `.deb`, archiwum źródeł i `SHA256SUMS` — składa skrypt (po zbudowaniu pakietów):
+
+```bash
+bash scripts/build-website.sh
+```
+
+Wynik: `build-release/strona/` — skopiuj jego zawartość np. do katalogu `cynamoncode/` na serwerze. Ścieżki są względne; strona nie ładuje zewnętrznych czcionek, skryptów ani liczników odwiedzin.
+
 ## Struktura
 
 | Ścieżka | Przeznaczenie |
@@ -75,7 +85,8 @@ Po instalacji program jest w menu (Akcesoria → CynamonCode) i na liście „Ot
 | `packaging/` | wpis menu `.desktop`, metadane AppStream, strona `man`, plik `copyright` pakietu |
 | `cmake/Install.cmake`, `cmake/Packaging.cmake` | reguły instalacji i pakiet `.deb` (CPack) |
 | `tests/` | testy Qt Test/CTest (`unit/`, `gui/`, `packaging/`; wydajność z etykietą `perf`, wydanie — `release`) |
-| `scripts/` | `bootstrap-mint.sh`, `build.sh`, `test.sh`, `generate-icons.py` |
+| `scripts/` | `bootstrap-mint.sh`, `build.sh`, `test.sh`, `generate-icons.py`, `build-website.sh` |
+| `website/` | strona www programu (PL i EN), zrzuty ekranu |
 | `LICENSE` | pełny tekst GNU GPL v3 |
 | `CLAUDE.md`, `START_CLAUDE.md` | reguły i polecenie startowe dla Claude Code |
 | `docs/SPECYFIKACJA.md` | wymagania i zachowanie aplikacji |
