@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // Przywracanie sesji w oknie głównym (D034; TESTY.md T21): kolejność kart
 // w obu panelach, klon, aktywna karta, kursor, ręczny język, folder; brakujące
 // pliki pomijane z informacją; bez treści dokumentów w pliku sesji.

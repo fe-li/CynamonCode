@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 #include "services/SettingsService.h"
 
 #include <QSettings>
@@ -18,6 +21,21 @@ const QString ZoomKey = QStringLiteral("editor/zoom");
 const QString ThemeKey = QStringLiteral("appearance/theme");
 const QString GeometryKey = QStringLiteral("window/geometry");
 const QString RestoreSessionKey = QStringLiteral("session/restore");
+const QString ShortcutsGroup = QStringLiteral("shortcuts");
+// Separator kilku sekwencji jednego polecenia; tabulator nie występuje w tekście
+// sekwencji (klawisz Tab jest zapisywany słowem), w przeciwieństwie do „,” i „;”.
+const QChar SequenceSeparator = QLatin1Char('\t');
+
+bool isValidActionId(const QString &id)
+{
+    if (id.isEmpty() || id.size() > 100)
+        return false;
+    return std::all_of(id.cbegin(), id.cend(), [](QChar c) {
+        return (c >= QLatin1Char('a') && c <= QLatin1Char('z'))
+               || (c >= QLatin1Char('A') && c <= QLatin1Char('Z'))
+               || (c >= QLatin1Char('0') && c <= QLatin1Char('9')) || c == QLatin1Char('_');
+    });
+}
 
 bool readBool(const QSettings &settings, const QString &key, bool fallback)
 {
@@ -79,6 +97,43 @@ void SettingsService::save(const EditorSettings &settings)
     m_settings.setValue(ThemeKey, settings.theme);
     m_settings.setValue(RestoreSessionKey, settings.restoreSession);
     m_settings.sync();
+}
+
+QMap<QString, QStringList> SettingsService::shortcutOverrides() const
+{
+    QMap<QString, QStringList> result;
+    m_settings.beginGroup(ShortcutsGroup);
+    const QStringList keys = m_settings.childKeys();
+    for (const QString &id : keys) {
+        if (!isValidActionId(id))
+            continue;
+        const QVariant value = m_settings.value(id);
+        // Lista (np. ręcznie wpisane „a, b”) nie jest formatem programu — pomijana.
+        if (value.typeId() != QMetaType::QString && value.isValid())
+            continue;
+        QStringList sequences;
+        for (const QString &part : value.toString().split(SequenceSeparator)) {
+            const QString trimmed = part.trimmed();
+            if (!trimmed.isEmpty())
+                sequences.append(trimmed);
+        }
+        result.insert(id, sequences);
+    }
+    m_settings.endGroup();
+    return result;
+}
+
+bool SettingsService::saveShortcutOverrides(const QMap<QString, QStringList> &overrides)
+{
+    m_settings.remove(ShortcutsGroup);
+    m_settings.beginGroup(ShortcutsGroup);
+    for (auto it = overrides.cbegin(); it != overrides.cend(); ++it) {
+        if (isValidActionId(it.key()))
+            m_settings.setValue(it.key(), it.value().join(SequenceSeparator));
+    }
+    m_settings.endGroup();
+    m_settings.sync();
+    return m_settings.status() == QSettings::NoError;
 }
 
 QByteArray SettingsService::windowGeometry() const

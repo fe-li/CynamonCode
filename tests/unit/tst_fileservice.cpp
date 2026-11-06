@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // FileService: odczyt surowych bajtów i atomowy zapis QSaveFile; błędy IO
 // nie mogą uszkodzić istniejącego pliku (TESTY.md T05, T16; D017).
 

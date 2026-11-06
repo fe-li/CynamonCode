@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: CC0-1.0 -->
+<!-- SPDX-FileCopyrightText: 2026 Kamil Feliszewski -->
+<component type="desktop-application">
+  <id>pl.feliszewski.CynamonCode</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <name>CynamonCode</name>
+  <summary>Lightweight text and code editor with syntax highlighting</summary>
+  <summary xml:lang="pl">Lekki edytor tekstu i kodu z kolorowaniem składni</summary>
+
+  <developer id="pl.feliszewski">
+    <name>Kamil Feliszewski</name>
+  </developer>
+
+  <description>
+    <p>
+      CynamonCode is a lightweight, native text and code editor for Linux with tabs,
+      syntax highlighting and safe file handling. It deliberately offers no code
+      completion, no linting and does not run the files you open.
+    </p>
+    <p xml:lang="pl">
+      CynamonCode to lekki, natywny edytor tekstu i kodu dla Linuksa z kartami,
+      kolorowaniem składni i bezpieczną obsługą plików. Celowo nie podpowiada kodu,
+      nie sprawdza jego poprawności i nie uruchamia otwartych plików.
+    </p>
+    <ul>
+      <li>Syntax highlighting for 12 languages, light and dark theme</li>
+      <li xml:lang="pl">Kolorowanie składni 12 języków, motyw jasny i ciemny</li>
+      <li>Find and replace, also with regular expressions and in all open files</li>
+      <li xml:lang="pl">Znajdź i zamień, także wyrażeniami regularnymi i we wszystkich otwartych plikach</li>
+      <li>Two views, file panel, session restore and configurable shortcuts</li>
+      <li xml:lang="pl">Dwa widoki, panel plików, przywracanie sesji i konfigurowalne skróty</li>
+      <li>UTF-8 only, atomic saving and detection of changes made by other programs</li>
+      <li xml:lang="pl">Tylko UTF-8, atomowy zapis i wykrywanie zmian dokonanych przez inne programy</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">pl.feliszewski.CynamonCode.desktop</launchable>
+  <url type="homepage">https://www.feliszewski.pl</url>
+
+  <categories>
+    <category>Utility</category>
+    <category>TextEditor</category>
+  </categories>
+
+  <keywords>
+    <keyword>text</keyword>
+    <keyword>editor</keyword>
+    <keyword>code</keyword>
+    <keyword xml:lang="pl">edytor</keyword>
+    <keyword xml:lang="pl">kod</keyword>
+  </keywords>
+
+  <provides>
+    <binary>cynamoncode</binary>
+  </provides>
+
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </supports>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="1.0.0" date="2026-11-06">
+      <description>
+        <p>First stable release: configurable shortcuts, help, menu entry and Debian package.</p>
+      </description>
+    </release>
+  </releases>
+</component>

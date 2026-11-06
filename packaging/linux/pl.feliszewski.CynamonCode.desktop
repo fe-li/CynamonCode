@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+[Desktop Entry]
+Type=Application
+Version=1.5
+Name=CynamonCode
+GenericName=Text Editor
+GenericName[pl]=Edytor tekstu
+Comment=Lightweight text and code editor with syntax highlighting
+Comment[pl]=Lekki edytor tekstu i kodu z kolorowaniem składni
+Keywords=text;editor;code;syntax;highlighting;programming;
+Keywords[pl]=tekst;edytor;kod;składnia;kolorowanie;programowanie;notatnik;
+Exec=cynamoncode %F
+TryExec=cynamoncode
+Icon=pl.feliszewski.CynamonCode
+Terminal=false
+StartupNotify=true
+StartupWMClass=cynamoncode
+Categories=Utility;TextEditor;Qt;
+MimeType=text/plain;text/x-c;text/x-csrc;text/x-chdr;text/x-c++src;text/x-c++hdr;text/x-python;text/x-python3;text/x-java;text/javascript;application/javascript;text/html;text/css;application/x-php;text/x-php;text/x-sql;application/sql;application/json;application/xml;text/xml;application/x-shellscript;text/x-shellscript;text/markdown;

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 #include "ui/MainWindow.h"
 
 #include "app/AppInfo.h"
@@ -7,7 +10,9 @@
 #include "ui/AboutDialog.h"
 #include "ui/FileTreeDock.h"
 #include "ui/FindReplaceDialog.h"
+#include "ui/HelpDialog.h"
 #include "ui/SearchResultsDock.h"
+#include "ui/ShortcutsDialog.h"
 
 #include <Qsci/qscidocument.h>
 
@@ -84,6 +89,10 @@ MainWindow::MainWindow(std::unique_ptr<UserPrompts> prompts, std::unique_ptr<QSe
     m_languageLabel = addStatusLabel("languageLabel");
     m_encodingLabel = addStatusLabel("encodingLabel");
     m_lineEndingLabel = addStatusLabel("lineEndingLabel");
+    m_cursorLabel->setAccessibleName(tr("Pozycja kursora"));
+    m_languageLabel->setAccessibleName(tr("Język"));
+    m_encodingLabel->setAccessibleName(tr("Kodowanie"));
+    m_lineEndingLabel->setAccessibleName(tr("Końce linii"));
 
     m_fileTree = new FileTreeDock(this);
     addDockWidget(Qt::LeftDockWidgetArea, m_fileTree);
@@ -99,6 +108,23 @@ MainWindow::MainWindow(std::unique_ptr<UserPrompts> prompts, std::unique_ptr<QSe
     createActions();
     createMenus();
     createViewAndLanguageMenus();
+    collectShortcutBindings();
+    if (m_settingsService) {
+        // Zapisane zmiany skrótów (D045); błędne i nieznane wpisy są pomijane.
+        const QMap<QString, QStringList> stored = m_settingsService->shortcutOverrides();
+        QList<ShortcutEntry> entries = shortcutEntries();
+        for (ShortcutEntry &entry : entries) {
+            const auto it = stored.constFind(entry.id);
+            if (it == stored.cend())
+                continue;
+            // Pusty wpis = polecenie bez skrótu; wpis błędny (żadna sekwencja nie
+            // przeszła kontroli) jest pomijany i zostaje skrót domyślny.
+            const QList<QKeySequence> parsed = Shortcuts::fromStorage(*it);
+            if (it->isEmpty() || !parsed.isEmpty())
+                entry.current = parsed;
+        }
+        applyShortcutEntries(entries);
+    }
 
     connect(&m_fileWatcher, &FileWatchService::fileChanged, this,
             &MainWindow::onWatchedFileChanged);
@@ -144,6 +170,7 @@ void MainWindow::createPanes()
         tabs->setMovable(true);
         tabs->setDocumentMode(true);
         tabs->tabBar()->setContextMenuPolicy(Qt::CustomContextMenu);
+        tabs->setAccessibleName(index == 0 ? tr("Pierwszy widok kart") : tr("Drugi widok kart"));
         m_panes[static_cast<size_t>(index)] = tabs;
 
         connect(tabs, &QTabWidget::tabCloseRequested, this, [this, tabs](int tab) {
@@ -469,6 +496,20 @@ void MainWindow::createActions()
         makeAction(tr("&Sklonuj do drugiego widoku"), "actionCloneToOtherView");
     connect(m_cloneToOtherViewAction, &QAction::triggered, this,
             [this] { cloneCurrentToOtherView(); });
+
+    m_nextTabAction = makeAction(tr("&Następna karta"), "actionNextTab");
+    m_nextTabAction->setShortcuts(
+        {QKeySequence(Qt::CTRL | Qt::Key_Tab), QKeySequence(Qt::CTRL | Qt::Key_PageDown)});
+    connect(m_nextTabAction, &QAction::triggered, this, [this] { switchTab(1); });
+
+    m_previousTabAction = makeAction(tr("P&oprzednia karta"), "actionPreviousTab");
+    m_previousTabAction->setShortcuts({QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_Tab),
+                                       QKeySequence(Qt::CTRL | Qt::Key_PageUp)});
+    connect(m_previousTabAction, &QAction::triggered, this, [this] { switchTab(-1); });
+
+    m_otherPaneAction = makeAction(tr("Przejdź do &drugiego widoku"), "actionFocusOtherView",
+                                   QKeySequence(Qt::Key_F8));
+    connect(m_otherPaneAction, &QAction::triggered, this, [this] { focusOtherPane(); });
 }
 
 void MainWindow::createMenus()
@@ -863,6 +904,10 @@ void MainWindow::createViewAndLanguageMenus()
     viewMenu->addSeparator();
     viewMenu->addAction(m_moveToOtherViewAction);
     viewMenu->addAction(m_cloneToOtherViewAction);
+    viewMenu->addSeparator();
+    viewMenu->addAction(m_nextTabAction);
+    viewMenu->addAction(m_previousTabAction);
+    viewMenu->addAction(m_otherPaneAction);
 
     QMenu *languageMenu = menuBar()->addMenu(tr("&Język"));
     languageMenu->setObjectName(QStringLiteral("menuLanguage"));
@@ -894,9 +939,18 @@ void MainWindow::createViewAndLanguageMenus()
         if (!on && !sessionFilePath().isEmpty())
             QFile::remove(sessionFilePath());
     });
+    settingsMenu->addSeparator();
+    QAction *shortcutsAction = settingsMenu->addAction(tr("&Skróty klawiszowe…"));
+    shortcutsAction->setObjectName(QStringLiteral("actionShortcuts"));
+    connect(shortcutsAction, &QAction::triggered, this, [this] { openShortcutsDialog(); });
 
     QMenu *helpMenu = menuBar()->addMenu(tr("Pomo&c"));
     helpMenu->setObjectName(QStringLiteral("menuHelp"));
+    QAction *helpAction = helpMenu->addAction(tr("&Pomoc programu"));
+    helpAction->setObjectName(QStringLiteral("actionHelp"));
+    helpAction->setShortcut(QKeySequence(Qt::Key_F1));
+    connect(helpAction, &QAction::triggered, this, [this] { openHelp(); });
+    helpMenu->addSeparator();
     QAction *aboutAction = helpMenu->addAction(tr("&O programie %1…").arg(AppInfo::productName()));
     aboutAction->setObjectName(QStringLiteral("actionAbout"));
     aboutAction->setMenuRole(QAction::AboutRole);
@@ -957,6 +1011,168 @@ void MainWindow::createSettingsActions(QMenu *viewMenu)
     m_fontAction = new QAction(tr("&Czcionka…"), this);
     m_fontAction->setObjectName(QStringLiteral("actionFont"));
     connect(m_fontAction, &QAction::triggered, this, [this] { chooseFont(); });
+}
+
+void MainWindow::collectShortcutBindings()
+{
+    m_shortcutBindings.clear();
+    QSet<const QAction *> seen;
+    std::function<void(QMenu *, const QString &)> visit;
+    visit = [&](QMenu *menu, const QString &path) {
+        for (QAction *action : menu->actions()) {
+            if (action->isSeparator())
+                continue;
+            if (QMenu *submenu = action->menu()) {
+                visit(submenu,
+                      path + QStringLiteral(" → ") + Shortcuts::plainText(submenu->title()));
+                continue;
+            }
+            if (action->objectName().isEmpty() || seen.contains(action))
+                continue;
+            seen.insert(action);
+            m_shortcutBindings.append({action, path, action->shortcuts()});
+        }
+    };
+    for (QAction *top : menuBar()->actions()) {
+        if (QMenu *menu = top->menu())
+            visit(menu, Shortcuts::plainText(menu->title()));
+    }
+}
+
+QList<ShortcutEntry> MainWindow::shortcutEntries() const
+{
+    QList<ShortcutEntry> entries;
+    entries.reserve(m_shortcutBindings.size());
+    for (const ShortcutBinding &binding : m_shortcutBindings) {
+        entries.append({binding.action->objectName(), binding.category,
+                        Shortcuts::plainText(binding.action->text()), binding.defaults,
+                        binding.action->shortcuts()});
+    }
+    return entries;
+}
+
+void MainWindow::applyShortcuts(const QList<ShortcutEntry> &entries)
+{
+    // Polecenia spoza listy zachowują swoje skróty, ale nie mogą dzielić sekwencji
+    // z nowymi — dlatego stosowana jest zawsze pełna lista.
+    QList<ShortcutEntry> all = shortcutEntries();
+    for (const ShortcutEntry &entry : entries) {
+        for (ShortcutEntry &target : all) {
+            if (target.id == entry.id)
+                target.current = entry.current;
+        }
+    }
+    applyShortcutEntries(std::move(all));
+    if (m_helpDialog)
+        m_helpDialog->setShortcuts(shortcutEntries());
+    if (!saveShortcutOverrides()) {
+        m_prompts->showError(this, tr("Skróty klawiszowe"),
+                             tr("Nie udało się zapisać ustawień skrótów. Zmiany obowiązują do "
+                                "zamknięcia programu."));
+    }
+}
+
+void MainWindow::applyShortcutEntries(QList<ShortcutEntry> entries)
+{
+    // Zmienione przez użytkownika najpierw: przy kolizji (np. ręcznie edytowany
+    // plik ustawień) sekwencja zostaje przy zmianie użytkownika, dalej decyduje
+    // kolejność menu.
+    std::stable_partition(entries.begin(), entries.end(), [](const ShortcutEntry &entry) {
+        return entry.current != entry.defaults;
+    });
+    QList<QKeySequence> used;
+    for (const ShortcutEntry &entry : std::as_const(entries)) {
+        QList<QKeySequence> kept;
+        for (const QKeySequence &sequence : entry.current) {
+            if (!sequence.isEmpty() && !used.contains(sequence)) {
+                kept.append(sequence);
+                used.append(sequence);
+            }
+        }
+        for (const ShortcutBinding &binding : std::as_const(m_shortcutBindings)) {
+            if (binding.action->objectName() == entry.id)
+                binding.action->setShortcuts(kept);
+        }
+    }
+    const QList<int> reserved = reservedEditorKeys();
+    for (EditorWidget *editor : allEditors())
+        editor->reserveKeys(reserved);
+}
+
+QList<int> MainWindow::reservedEditorKeys() const
+{
+    QList<int> keys;
+    for (const ShortcutBinding &binding : m_shortcutBindings) {
+        for (const QKeySequence &sequence : binding.action->shortcuts()) {
+            if (sequence.count() == 1)
+                keys.append(sequence[0].toCombined());
+        }
+    }
+    return keys;
+}
+
+bool MainWindow::saveShortcutOverrides() const
+{
+    if (!m_settingsService)
+        return true;
+    QMap<QString, QStringList> overrides;
+    for (const ShortcutBinding &binding : m_shortcutBindings) {
+        const QList<QKeySequence> current = binding.action->shortcuts();
+        if (current != binding.defaults)
+            overrides.insert(binding.action->objectName(), Shortcuts::toStorage(current));
+    }
+    return m_settingsService->saveShortcutOverrides(overrides);
+}
+
+ShortcutsDialog *MainWindow::openShortcutsDialog()
+{
+    // Zawsze świeża kopia listy — „Anuluj” porzuca zmiany razem z oknem.
+    if (m_shortcutsDialog)
+        m_shortcutsDialog->deleteLater();
+    auto *dialog = new ShortcutsDialog(shortcutEntries(), this);
+    m_shortcutsDialog = dialog;
+    connect(dialog, &QDialog::accepted, this, [this, dialog] {
+        applyShortcuts(dialog->entries());
+        statusBar()->showMessage(tr("Zmieniono skróty klawiszowe."), 4000);
+    });
+    dialog->open(); // modalne dla okna, bez blokującej pętli exec()
+    return dialog;
+}
+
+HelpDialog *MainWindow::openHelp()
+{
+    if (!m_helpDialog)
+        m_helpDialog = new HelpDialog(this);
+    m_helpDialog->setShortcuts(shortcutEntries());
+    m_helpDialog->show(); // niemodalne — można czytać pomoc i pracować jednocześnie
+    m_helpDialog->raise();
+    m_helpDialog->activateWindow();
+    return m_helpDialog;
+}
+
+void MainWindow::switchTab(int step)
+{
+    QTabWidget *tabs = m_panes[static_cast<size_t>(m_activePane)];
+    if (tabs->count() == 0)
+        tabs = m_panes[static_cast<size_t>(1 - m_activePane)];
+    const int count = tabs->count();
+    if (count < 2)
+        return;
+    const int next = ((tabs->currentIndex() + step) % count + count) % count;
+    if (auto *editor = qobject_cast<EditorWidget *>(tabs->widget(next)))
+        activateEditor(editor);
+}
+
+bool MainWindow::focusOtherPane()
+{
+    QTabWidget *other = m_panes[static_cast<size_t>(1 - m_activePane)];
+    auto *editor = qobject_cast<EditorWidget *>(other->currentWidget());
+    if (!editor) {
+        statusBar()->showMessage(tr("Drugi widok jest pusty."), 3000);
+        return false;
+    }
+    activateEditor(editor);
+    return true;
 }
 
 void MainWindow::newDocument()
@@ -1352,6 +1568,7 @@ EditorWidget *MainWindow::createEditor(DocumentId id, EditorWidget *shareDocumen
         editor->setIndentationsUseTabs(document->indentWithTabs);
     }
     applyEditorSettings(editor);
+    editor->reserveKeys(reservedEditorKeys());
 
     m_documentIds.insert(editor, id);
     // Ctrl+kółko w jednej karcie zmienia powiększenie wszystkich i zapisuje je (D029).
@@ -1705,6 +1922,7 @@ void MainWindow::updateTabTitle(EditorWidget *editor)
     if (needsSaving(editor))
         title += QLatin1Char('*');
     tabs->setTabText(index, title);
+    editor->setAccessibleName(tr("Edytor: %1").arg(name));
     tabs->setTabToolTip(index, document && !document->isUntitled()
                                    ? QDir::toNativeSeparators(document->filePath)
                                    : name);

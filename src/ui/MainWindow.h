@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 #pragma once
 
 #include "controllers/DocumentController.h"
@@ -7,6 +10,7 @@
 #include "services/FileWatchService.h"
 #include "services/SessionService.h"
 #include "services/SettingsService.h"
+#include "ui/Shortcuts.h"
 #include "ui/UserPrompts.h"
 
 #include <QHash>
@@ -32,7 +36,9 @@ class AboutDialog;
 class EditorWidget;
 class FileTreeDock;
 class FindReplaceDialog;
+class HelpDialog;
 class SearchResultsDock;
+class ShortcutsDialog;
 
 // Główne okno: dwa panele kart (D036), panel plików, wyniki wyszukiwania, menu
 // i pasek stanu. Operacje na plikach deleguje do DocumentController; nie czyta
@@ -94,6 +100,19 @@ public:
     bool restoreSession();
     bool saveSession() const;
 
+    // Skróty klawiszowe (D045): wszystkie polecenia menu w kolejności menu.
+    QList<ShortcutEntry> shortcutEntries() const;
+    // Ustawia bieżące skróty podanych poleceń i zapisuje w ustawieniach różnice
+    // względem domyślnych. Sekwencja przypisana kilku poleceniom zostaje przy
+    // pierwszym zmienionym.
+    void applyShortcuts(const QList<ShortcutEntry> &entries);
+    ShortcutsDialog *openShortcutsDialog();
+    HelpDialog *openHelp();
+
+    // Nawigacja klawiaturą (D046).
+    void switchTab(int step);
+    bool focusOtherPane();
+
 protected:
     void closeEvent(QCloseEvent *event) override;
 
@@ -104,6 +123,10 @@ private:
     void createViewAndLanguageMenus();
     void createSearchActions();
     void createSettingsActions(QMenu *viewMenu);
+    void collectShortcutBindings();
+    void applyShortcutEntries(QList<ShortcutEntry> entries);
+    bool saveShortcutOverrides() const;
+    QList<int> reservedEditorKeys() const;
     void applyEditorSettings(EditorWidget *editor) const;
     void changeSettings(const std::function<void(EditorSettings &)> &change);
     QFont editorFont() const;
@@ -215,6 +238,11 @@ private:
     QAction *m_findInAllAction = nullptr;
     QAction *m_moveToOtherViewAction = nullptr;
     QAction *m_cloneToOtherViewAction = nullptr;
+    QAction *m_nextTabAction = nullptr;
+    QAction *m_previousTabAction = nullptr;
+    QAction *m_otherPaneAction = nullptr;
+    ShortcutsDialog *m_shortcutsDialog = nullptr;
+    HelpDialog *m_helpDialog = nullptr;
     FindReplaceDialog *m_findDialog = nullptr;
     AboutDialog *m_aboutDialog = nullptr;
     QAction *m_wordWrapAction = nullptr;
@@ -230,6 +258,15 @@ private:
     QAction *m_darkThemeAction = nullptr;
     QActionGroup *m_languageGroup = nullptr;
     QList<QAction *> m_languageActions; // QAction::data() = int(LanguageId)
+
+    // Polecenia menu z konfigurowalnym skrótem (zbierane po zbudowaniu menu).
+    struct ShortcutBinding
+    {
+        QAction *action = nullptr;
+        QString category;
+        QList<QKeySequence> defaults;
+    };
+    QList<ShortcutBinding> m_shortcutBindings;
 
     ThemeId m_theme = ThemeId::Light;
 };

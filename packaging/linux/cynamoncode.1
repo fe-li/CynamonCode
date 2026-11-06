@@ -1,0 +1,43 @@
+.\" SPDX-License-Identifier: GPL-3.0-or-later
+.\" SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+.TH CYNAMONCODE 1 "2026-11-06" "CynamonCode @PROJECT_VERSION@" "Polecenia użytkownika"
+.SH NAZWA
+cynamoncode \- lekki edytor tekstu i kodu z kolorowaniem składni
+.SH SKŁADNIA
+.B cynamoncode
+.RI [ opcje ]
+.RI [ plik ...]
+.SH OPIS
+.B CynamonCode
+to natywny edytor tekstu i kodu z kartami, kolorowaniem składni, wyszukiwaniem
+i zamianą, dwoma widokami, panelem plików i przywracaniem sesji.
+Program celowo nie podpowiada kodu, nie sprawdza jego poprawności i nie
+uruchamia otwartych plików.
+.PP
+Otwierane są wyłącznie pliki tekstowe w UTF\-8 (z BOM lub bez). Pliki w innym
+kodowaniu oraz pliki binarne nie są otwierane i pozostają nietknięte.
+Zapis jest atomowy, a końce linii (LF, CRLF) są zachowywane.
+.PP
+Pliki podane w wierszu poleceń otwierają się w nowych kartach, po przywróceniu
+poprzedniej sesji.
+.SH OPCJE
+.TP
+.BR \-h ", " \-\-help
+Wypisuje opis opcji i kończy działanie.
+.TP
+.BR \-v ", " \-\-version
+Wypisuje numer wersji i kończy działanie.
+.SH PLIKI
+.TP
+.I ~/.config/CynamonCode/cynamoncode.conf
+Ustawienia: czcionka, motyw, widok, skróty klawiszowe.
+.TP
+.I ~/.config/CynamonCode/session.json
+Lista plików otwartych przy zamknięciu programu (bez ich treści).
+.SH ZOBACZ TAKŻE
+Pomoc w programie: menu Pomoc lub klawisz F1.
+.SH AUTOR
+Kamil Feliszewski <kamil@feliszewski.pl>, https://www.feliszewski.pl
+.SH LICENCJA
+GNU General Public License w wersji 3 lub późniejszej (GPL\-3.0\-or\-later).
+Program jest dostarczany bez jakiejkolwiek gwarancji.

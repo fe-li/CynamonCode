@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // Integracja okna głównego: karty, otwieranie i zapis, ochrona niezapisanych
 // zmian (TESTY.md T03–T08, T19; bramka E1). Dialogi zastępuje ScriptedPrompts.
 

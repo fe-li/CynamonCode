@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // Regresja bezwzględnego zakazu z CLAUDE.md: żadnego autouzupełniania ani
 // call tips — po utworzeniu edytora, podczas pisania i po zmianie lexera
 // (TESTY.md T08, T09; D013).

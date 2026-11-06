@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 Kamil Feliszewski
 # Sprawdza zależności CynamonCode na Linux Mint / Ubuntu (dpkg/apt).
 #
 #   bash scripts/bootstrap-mint.sh            — tylko raport, nic nie instaluje

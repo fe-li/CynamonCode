@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // Stan pliku na dysku i obserwacja zmian (D026, D027, D030; TESTY.md T18, T26):
 // wykrycie zmiany, sam touch bez alarmu, usunięcie, konflikt zapisu,
 // przeładowanie oraz zdarzenia FileWatchService także po podmianie przez rename.

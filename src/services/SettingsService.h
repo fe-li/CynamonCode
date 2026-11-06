@@ -1,7 +1,12 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 #pragma once
 
 #include <QByteArray>
+#include <QMap>
 #include <QString>
+#include <QStringList>
 
 class QSettings;
 
@@ -32,6 +37,13 @@ public:
 
     EditorSettings load() const;
     void save(const EditorSettings &settings);
+
+    // Skróty zmienione przez użytkownika (D045): identyfikator polecenia → sekwencje
+    // w formacie QKeySequence::PortableText; pusta lista = polecenie bez skrótu.
+    // Warstwa bez GUI nie sprawdza składni sekwencji — robi to interfejs.
+    QMap<QString, QStringList> shortcutOverrides() const;
+    // false, gdy pliku ustawień nie udało się zapisać.
+    bool saveShortcutOverrides(const QMap<QString, QStringList> &overrides);
 
     QByteArray windowGeometry() const;
     void saveWindowGeometry(const QByteArray &geometry);

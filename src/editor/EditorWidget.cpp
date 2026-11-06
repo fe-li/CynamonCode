@@ -1,9 +1,14 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 #include "editor/EditorWidget.h"
 
 #include "editor/SyntaxHighlighter.h"
 #include "services/Indentation.h"
 #include "services/TextPositions.h"
 
+#include <Qsci/qscicommand.h>
+#include <Qsci/qscicommandset.h>
 #include <Qsci/qscilexer.h>
 #include <Qsci/qscilexerhtml.h>
 
@@ -83,6 +88,21 @@ EditorWidget::EditorWidget(QWidget *parent)
 
     connect(this, &QsciScintilla::linesChanged, this, &EditorWidget::updateLineNumberMarginWidth);
     setLanguage(LanguageId::Plain);
+
+    for (QsciCommand *command : standardCommands()->commands())
+        m_defaultKeyBindings.append({command, command->key(), command->alternateKey()});
+}
+
+void EditorWidget::reserveKeys(const QList<int> &keys)
+{
+    for (const DefaultKeyBinding &binding : std::as_const(m_defaultKeyBindings)) {
+        const int key = keys.contains(binding.key) ? 0 : binding.key;
+        const int alternateKey = keys.contains(binding.alternateKey) ? 0 : binding.alternateKey;
+        if (binding.command->key() != key)
+            binding.command->setKey(key);
+        if (binding.command->alternateKey() != alternateKey)
+            binding.command->setAlternateKey(alternateKey);
+    }
 }
 
 bool EditorWidget::loadText(const QString &text)

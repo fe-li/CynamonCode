@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 #pragma once
 
 #include "domain/LanguageId.h"
@@ -12,6 +15,7 @@
 
 #include <QFont>
 
+class QsciCommand;
 class QsciLexer;
 
 namespace cynamoncode {
@@ -46,6 +50,11 @@ public:
 
     void setLexer(QsciLexer *lexer = nullptr) override;
 
+    // Klawisze przypisane poleceniom okna (D045, wartości QKeyCombination::toCombined)
+    // są zdejmowane z wbudowanej mapy klawiszy QScintilli, żeby skrót okna działał
+    // także w edytorze; pozostałe polecenia edytora wracają do domyślnych klawiszy.
+    void reserveKeys(const QList<int> &keys);
+
     // Wyszukiwanie (D028). `text` to bieżący tekst edytora (text()), a pozycje
     // są indeksami QString; przeliczenie na bajty Scintilli odbywa się tutaj.
     void selectRange(const QString &text, qsizetype start, qsizetype length);
@@ -72,6 +81,14 @@ private:
     ThemePalette m_palette = ThemePalette::light();
     QFont m_font;
     bool m_lineNumbersVisible = true;
+
+    struct DefaultKeyBinding
+    {
+        QsciCommand *command = nullptr; // własność QsciScintilla
+        int key = 0;
+        int alternateKey = 0;
+    };
+    QList<DefaultKeyBinding> m_defaultKeyBindings;
 };
 
 } // namespace cynamoncode

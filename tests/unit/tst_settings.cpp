@@ -1,8 +1,12 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // SettingsService: wartości domyślne, zapis i odczyt, odporność na błędne
 // wartości w pliku konfiguracyjnym (D029).
 
 #include "services/SettingsService.h"
 
+#include <QFile>
 #include <QSettings>
 #include <QTemporaryDir>
 #include <QtTest>
@@ -18,6 +22,9 @@ private slots:
     void roundTrip();
     void invalidValuesFallBackToDefaults();
     void windowGeometryRoundTrip();
+    void shortcutOverridesRoundTrip();
+    void shortcutOverridesSurviveRestart();
+    void invalidShortcutEntriesSkipped();
 };
 
 void TestSettings::defaultsWhenEmpty()
@@ -77,6 +84,64 @@ void TestSettings::windowGeometryRoundTrip()
     QVERIFY(service.windowGeometry().isEmpty());
     service.saveWindowGeometry(QByteArray("\x01\x02geometria", 11));
     QCOMPARE(service.windowGeometry(), QByteArray("\x01\x02geometria", 11));
+}
+
+void TestSettings::shortcutOverridesRoundTrip()
+{
+    QTemporaryDir dir;
+    QSettings store(dir.filePath(QStringLiteral("ustawienia.conf")), QSettings::IniFormat);
+    SettingsService service(store);
+    QVERIFY(service.shortcutOverrides().isEmpty());
+
+    // Przecinek i średnik w sekwencji, kilka sekwencji, polecenie bez skrótu (D045).
+    QMap<QString, QStringList> overrides;
+    overrides.insert(QStringLiteral("actionNew"), {QStringLiteral("Ctrl+,")});
+    overrides.insert(QStringLiteral("actionRedo"),
+                     {QStringLiteral("Ctrl+;"), QStringLiteral("Ctrl+Shift+Z")});
+    overrides.insert(QStringLiteral("actionQuit"), {});
+    service.saveShortcutOverrides(overrides);
+    QCOMPARE(service.shortcutOverrides(), overrides);
+
+    // Kolejny zapis zastępuje całą grupę (przywrócone domyślne znikają).
+    overrides.remove(QStringLiteral("actionRedo"));
+    service.saveShortcutOverrides(overrides);
+    QCOMPARE(service.shortcutOverrides(), overrides);
+    service.saveShortcutOverrides({});
+    QVERIFY(service.shortcutOverrides().isEmpty());
+}
+
+void TestSettings::shortcutOverridesSurviveRestart()
+{
+    QTemporaryDir dir;
+    const QString path = dir.filePath(QStringLiteral("ustawienia.conf"));
+    QMap<QString, QStringList> overrides;
+    overrides.insert(QStringLiteral("actionFind"), {QStringLiteral("Alt+F7")});
+    overrides.insert(QStringLiteral("actionSave"), {});
+    {
+        QSettings store(path, QSettings::IniFormat);
+        SettingsService(store).saveShortcutOverrides(overrides);
+    }
+    QSettings store(path, QSettings::IniFormat);
+    QCOMPARE(SettingsService(store).shortcutOverrides(), overrides);
+}
+
+void TestSettings::invalidShortcutEntriesSkipped()
+{
+    QTemporaryDir dir;
+    const QString path = dir.filePath(QStringLiteral("ustawienia.conf"));
+    {
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        // Ręcznie edytowany plik: lista zamiast tekstu, niedozwolony identyfikator.
+        file.write("[shortcuts]\n"
+                   "actionOpen=Ctrl+P\n"
+                   "actionFind=Ctrl+1, Ctrl+2\n"
+                   "bad-id=Ctrl+B\n");
+    }
+    QSettings store(path, QSettings::IniFormat);
+    const QMap<QString, QStringList> overrides = SettingsService(store).shortcutOverrides();
+    QCOMPARE(overrides.size(), 1);
+    QCOMPARE(overrides.value(QStringLiteral("actionOpen")), QStringList{QStringLiteral("Ctrl+P")});
 }
 
 QTEST_GUILESS_MAIN(TestSettings)

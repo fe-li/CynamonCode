@@ -2,7 +2,7 @@
 
 **CynamonCode** to lekki, natywny edytor tekstu i kodu dla Linux Mint i innych dystrybucji Linuksa. Wygodą edycji ma przypominać Notepad++, ale ma własną implementację, nazwę i identyfikację graficzną.
 
-> **Stan: wersja 0.2 (etapy E0–E4 ukończone).** Następny etap: E5 — wydanie 1.0 z pakietem `.deb` (`TASKS.md`).
+> **Stan: wersja 1.0.0 (etapy E0–E5 ukończone, tag `v1.0.0`).** Szczegóły: `TASKS.md`, `CHANGELOG.md`.
 
 ## Funkcje
 
@@ -11,6 +11,8 @@
 - Znajdź i zamień (także wyrażenia regularne), szukanie i zamiana we wszystkich otwartych plikach.
 - Bezpieczne pliki: tylko UTF-8 bez cichych zmian bajtów, zapis atomowy, wykrywanie zmian na dysku, ochrona niezapisanych zmian.
 - Pasek stanu, ustawienia zapamiętywane między uruchomieniami.
+- Konfigurowalne skróty klawiszowe (Ustawienia → Skróty klawiszowe…), pełna obsługa z klawiatury (Ctrl+Tab, F8), pomoc w programie (F1).
+- Wpis w menu systemu z ikoną, „Otwórz za pomocą” dla plików tekstowych i kodu, pakiet `.deb`.
 
 ## Technologie
 
@@ -51,6 +53,16 @@ C++20 · Qt 6 Widgets · QScintilla 2 dla Qt6 · CMake · Ninja · Qt Test/CTest
 
 Wersja Release: `bash scripts/build.sh release` (katalog `build-release/`). Szczegóły i typowe problemy: `docs/LINUX_MINT.md`.
 
+## Pakiet `.deb`
+
+```bash
+bash scripts/build.sh release
+cpack --config build-release/CPackConfig.cmake -B build-release/pakiety
+sudo apt install ./build-release/pakiety/cynamoncode_1.0.0_amd64.deb
+```
+
+Po instalacji program jest w menu (Akcesoria → CynamonCode) i na liście „Otwórz za pomocą”; pakiet nie zmienia domyślnych programów. Odinstalowanie: `sudo apt remove cynamoncode`. Opis plików pakietu: `docs/LINUX_MINT.md`.
+
 ## Struktura
 
 | Ścieżka | Przeznaczenie |
@@ -59,7 +71,9 @@ Wersja Release: `bash scripts/build.sh release` (katalog `build-release/`). Szcz
 | `cmake/FindQScintillaQt6.cmake` | wykrywanie QScintilla Qt6 po nagłówku i bibliotece |
 | `src/` | kod aplikacji: `domain/`, `services/`, `controllers/` (bez GUI), `editor/`, `ui/`, `app/` |
 | `resources/` | zasoby Qt: ikony i logo źródłowe |
-| `tests/` | testy Qt Test/CTest (`unit/`, `gui/`; wydajność z etykietą `perf`) |
+| `packaging/` | wpis menu `.desktop`, metadane AppStream, strona `man`, plik `copyright` pakietu |
+| `cmake/Install.cmake`, `cmake/Packaging.cmake` | reguły instalacji i pakiet `.deb` (CPack) |
+| `tests/` | testy Qt Test/CTest (`unit/`, `gui/`, `packaging/`; wydajność z etykietą `perf`, wydanie — `release`) |
 | `scripts/` | `bootstrap-mint.sh`, `build.sh`, `test.sh`, `generate-icons.py` |
 | `LICENSE` | pełny tekst GNU GPL v3 |
 | `CLAUDE.md`, `START_CLAUDE.md` | reguły i polecenie startowe dla Claude Code |

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // SearchService i TextPositions: wyszukiwanie zwykłe, bez wielkości liter,
 // całe wyrazy, regex z grupami, zawijanie, puste dopasowania; przeliczanie
 // indeksów QString ↔ bajty UTF-8 (D028, T17).

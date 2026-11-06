@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // Smoke test GUI: główne okno powstaje, ma tytuł produktu, pokazuje się
 // i zamyka akcją „Zakończ”. Bez ekranu: QT_QPA_PLATFORM=offscreen.
 

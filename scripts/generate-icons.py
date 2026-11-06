@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 Kamil Feliszewski
 """Generuje ikony CynamonCode (16–512 px) z logo źródłowego (D033).
 
 Narzędzie dla deweloperów — nie jest częścią budowania. Wymaga Pillow:

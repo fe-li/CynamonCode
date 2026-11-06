@@ -4,6 +4,32 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/). Wersj
 
 ## [Niewydane]
 
+## [1.0.0] — 2026-11-06
+
+Pierwsza stabilna wersja (E5), tag `v1.0.0`. Zawiera także zmiany z wersji 0.1 i 0.2 opisane niżej.
+
+### Dodano (E5, 2026-11-06)
+
+- Konfigurowalne skróty klawiszowe: Ustawienia → „Skróty klawiszowe…” (wyszukiwanie polecenia, przypisanie, usunięcie, przywrócenie domyślnych). Zajęty skrót jest przenoszony z informacją; w ustawieniach zapisywane są tylko zmiany (D045).
+- Klawiatura: Ctrl+Tab / Ctrl+Shift+Tab i Ctrl+PgDown / Ctrl+PgUp przełączają karty, F8 przenosi kursor do drugiego widoku; nazwy dostępności dla edytorów, paneli i paska stanu (D046).
+- Pomoc programu (F1): opis funkcji, zasady pracy z plikami i aktualna lista skrótów, bez sieci.
+- Wiersz poleceń: `--help`, `--version`; polskie napisy w standardowych oknach Qt, gdy w systemie są tłumaczenia Qt.
+- Integracja z systemem: identyfikator `pl.feliszewski.CynamonCode`, wpis w menu (Akcesoria) z ikoną, typy MIME dla „Otwórz za pomocą” bez zmiany domyślnych programów, metadane AppStream, strona `man` (D041–D043).
+- Pakiet `cynamoncode_1.0.0_amd64.deb` (CPack, zależności z `dpkg-shlibdeps`, plik `copyright` w formacie DEP-5) i archiwum źródeł `cynamoncode-1.0.0.tar.gz` (D044).
+- Nagłówki `SPDX-License-Identifier: GPL-3.0-or-later` we wszystkich plikach źródłowych.
+- Testy: `tst_shortcuts`, test pomocy w `tst_about`, skróty w `tst_settings`, `tst_cli_version`, `tst_cli_help`, `tst_install_layout`, `tst_spdx_headers`.
+
+### Weryfikacja E5 (2026-11-06)
+
+- Przegląd kodu: skróty tylko z jednej kombinacji klawiszy, klawisze poleceń zdejmowane z wbudowanej mapy klawiszy QScintilli (np. Ctrl+T nie zamienia już wierszy, gdy jest skrótem polecenia), błędny wpis w ustawieniach zostawia skrót domyślny, Ctrl+Shift+Tab z X11 rozpoznawany, `--version` bez ekranu, poprawki pakietu i archiwum źródeł.
+- Linux Mint 22.3: build Debug i Release od zera bez ostrzeżeń, `ctest` 29/29 PASS (offscreen, X11, Release), archiwum źródeł buduje się samodzielnie, pakiet `.deb` z poprawnymi uprawnieniami i zależnościami. Instalacja i odinstalowanie pakietu (użytkownik): poprawny wpis w menu, „Otwórz za pomocą” bez zmiany domyślnych programów, po odinstalowaniu nie zostają żadne pliki.
+
+### Zmieniono (E5)
+
+- Wersja programu 1.0.0 (`project(VERSION)`).
+- Ikona okna dopasowana do wpisu w menu przez identyfikator aplikacji zamiast nazwy `cynamoncode`.
+
+
 ### Dodano (2026-11-06)
 
 - Licencja GPL-3.0-or-later: plik `LICENSE` (oficjalny tekst GNU GPL v3), sekcja w README i informacja w oknie „O programie” (D040).

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // Ustawienia w oknie głównym (D029; TESTY.md T20): przełączniki widoku,
 // powiększenie, czcionka i motyw stosowane do wszystkich kart i zapamiętane
 // po ponownym uruchomieniu.

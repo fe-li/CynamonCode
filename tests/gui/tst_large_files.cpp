@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // Duże pliki (D039): pytanie przed otwarciem pliku > 20 MiB oraz testy
 // wydajności dla pliku kilku MiB — z łagodnymi limitami czasu, bo build Debug
 // w maszynie wirtualnej jest wolniejszy. Czasy są wypisywane (qInfo).

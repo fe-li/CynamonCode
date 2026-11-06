@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // Smoke test zależności: QScintilla w wariancie Qt6 kompiluje się, linkuje
 // i ładuje w procesie bez bibliotek Qt5. Nie tworzy instancji QsciScintilla —
 // konfiguracja edytora (z wyłączonymi podpowiedziami) należy do E1.

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // LanguageRegistry: rozszerzenia, znane nazwy plików, shebang i kolejność
 // wykrywania (D023, SPECYFIKACJA §3.6).
 

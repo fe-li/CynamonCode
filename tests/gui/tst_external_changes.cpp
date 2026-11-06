@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // Zewnętrzne zmiany otwartych plików w oknie głównym (D026, D027; TESTY.md T18,
 // T26): zawsze pytanie, przeładowanie lub zachowanie zmian, konflikt przy zapisie,
 // brak alarmu po własnym zapisie, usunięty plik chroniony przy zamykaniu.

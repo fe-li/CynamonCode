@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // Automatyczne wcięcia (D024): Enter zachowuje wcięcie; w językach z klamrami
 // „{” wcina, „}” cofa; Tab wstawia spacje albo tabulator zgodnie ze stylem pliku.
 // Pisanie nigdy nie otwiera podpowiedzi.

@@ -1,0 +1,31 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: CynamonCode
+Upstream-Contact: Kamil Feliszewski <kamil@feliszewski.pl>
+Source: https://www.feliszewski.pl
+
+Files: *
+Copyright: 2026 Kamil Feliszewski <kamil@feliszewski.pl>
+License: GPL-3.0-or-later
+
+Files: packaging/linux/pl.feliszewski.CynamonCode.metainfo.xml
+Copyright: 2026 Kamil Feliszewski <kamil@feliszewski.pl>
+License: CC0-1.0
+ On Debian systems, the complete text of the Creative Commons Zero v1.0
+ Universal license can be found in "/usr/share/common-licenses/CC0-1.0".
+
+License: GPL-3.0-or-later
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ .
+ On Debian systems, the complete text of the GNU General Public License
+ version 3 can be found in "/usr/share/common-licenses/GPL-3".

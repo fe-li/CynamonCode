@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // DocumentController bez GUI: deduplikacja kart, roundtrip zapisu bajt w bajt,
 // odmowa plików nie-UTF-8 (TESTY.md T03, T06, T07, T12–T15).
 

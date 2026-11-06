@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 #pragma once
 
 // Skryptowana implementacja UserPrompts dla testów GUI (D018): zamiast okien

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // Kolorowanie składni (E2): tokeny dostają kolory palety (T10), żaden styl
 // lexera nie wygląda jak diagnostyka (T11), zmiana języka i motywu nie rusza
 // treści ani blokady podpowiedzi (T09, T20). D021–D023.

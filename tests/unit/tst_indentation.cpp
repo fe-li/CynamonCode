@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // Indentation::usesTabs — wykrywanie stylu wcięć istniejącego pliku (D024).
 
 #include "services/Indentation.h"

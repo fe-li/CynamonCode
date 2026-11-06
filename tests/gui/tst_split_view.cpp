@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // Podział widoku (D036; TESTY.md T22): przenoszenie kart między panelami,
 // klon ze wspólnym buforem, zamykanie widoków bez utraty dokumentu.
 

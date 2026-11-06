@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // SessionService (D034): zapis i odczyt sesji JSON, odporność na uszkodzone
 // lub obce dane, brak treści dokumentów w sesji.
 

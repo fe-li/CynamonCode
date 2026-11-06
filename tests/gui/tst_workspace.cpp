@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // Panel plików (D037): otwarcie folderu (także z menu), filtr nazw, otwarcie
 // pliku z drzewa; foldery tylko się rozwijają, nic nie jest uruchamiane.
 

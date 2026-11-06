@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // Znajdź i zamień w oknie głównym: zaznaczanie trafień (także z polskimi znakami
 // i emoji), zamiana pojedyncza, „Zamień wszystkie” jako jedno cofnięcie (T17),
 // okno dialogowe i skróty F3 (D028).

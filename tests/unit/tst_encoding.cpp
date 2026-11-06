@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 // EncodingService: bezstratny roundtrip UTF-8, BOM, odmowa NUL i niepoprawnych
 // sekwencji, rozpoznawanie końców linii (TESTY.md T12–T15, zakres E1).
 

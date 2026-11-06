@@ -1,8 +1,12 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
 cmake_minimum_required(VERSION 3.21)
 
 project(CynamonCode
-    VERSION 0.1.0
+    VERSION 1.0.0
     DESCRIPTION "Lekki edytor tekstu i kodu dla Linuksa"
+    HOMEPAGE_URL "https://www.feliszewski.pl"
     LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -17,8 +21,12 @@ endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+# Identyfikator aplikacji (D041) — nazwy plików .desktop, AppStream i ikon.
+set(CYNAMONCODE_APP_ID "pl.feliszewski.CynamonCode")
+
 # Udostępnia opcję BUILD_TESTING (domyślnie ON) i włącza CTest.
 include(CTest)
+include(GNUInstallDirs)
 
 # Wyłącznie Qt6. Brak Qt6 to błąd konfiguracji — nie ma fallbacku do Qt5.
 find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Widgets)
@@ -84,10 +92,16 @@ add_library(cynamoncode_ui STATIC
     src/ui/FileTreeDock.h
     src/ui/FindReplaceDialog.cpp
     src/ui/FindReplaceDialog.h
+    src/ui/HelpDialog.cpp
+    src/ui/HelpDialog.h
     src/ui/MainWindow.cpp
     src/ui/MainWindow.h
     src/ui/SearchResultsDock.cpp
     src/ui/SearchResultsDock.h
+    src/ui/Shortcuts.cpp
+    src/ui/Shortcuts.h
+    src/ui/ShortcutsDialog.cpp
+    src/ui/ShortcutsDialog.h
     src/ui/UserPrompts.cpp
     src/ui/UserPrompts.h)
 target_link_libraries(cynamoncode_ui
@@ -97,6 +111,10 @@ target_link_libraries(cynamoncode_ui
 add_executable(cynamoncode src/main.cpp)
 target_link_libraries(cynamoncode PRIVATE cynamoncode_ui cynamoncode_warnings)
 
+include(cmake/Install.cmake)
+
 if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()
+
+include(cmake/Packaging.cmake)
