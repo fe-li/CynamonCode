@@ -38,8 +38,9 @@ set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "${PROJECT_HOMEPAGE_URL}")
 # X11 (libqxcb.so) jest w Ubuntu 24.04 / Mint 22 częścią libqt6gui6t64, więc nie
 # wymaga osobnej zależności.
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
-# Polskie napisy w standardowych oknach Qt (wybór pliku, czcionki) — nie są wymagane.
-set(CPACK_DEBIAN_PACKAGE_SUGGESTS "qt6-translations-l10n")
+# Polskie napisy w standardowych oknach Qt (wybór pliku, czcionki): apt instaluje je
+# domyślnie (Recommends), ale program działa i bez nich (decyzja użytkownika 2026-11-06).
+set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "qt6-translations-l10n")
 set(CPACK_DEBIAN_PACKAGE_CONTROL_STRICT_PERMISSION ON)
 
 # Archiwum źródeł: bez katalogów budowania, historii Git i lokalnych ustawień.
