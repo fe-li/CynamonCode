@@ -6,8 +6,10 @@
 #include "app/AppInfo.h"
 #include "editor/EditorWidget.h"
 #include "services/LanguageRegistry.h"
+#include "services/MimeAppsService.h"
 #include "services/SearchService.h"
 #include "ui/AboutDialog.h"
+#include "ui/DefaultAppsDialog.h"
 #include "ui/FileTreeDock.h"
 #include "ui/FindReplaceDialog.h"
 #include "ui/HelpDialog.h"
@@ -30,6 +32,7 @@
 #include <QMenuBar>
 #include <QSettings>
 #include <QSplitter>
+#include <QStandardPaths>
 #include <QStatusBar>
 #include <QTabBar>
 #include <QTabWidget>
@@ -943,6 +946,9 @@ void MainWindow::createViewAndLanguageMenus()
     QAction *shortcutsAction = settingsMenu->addAction(tr("&Skróty klawiszowe…"));
     shortcutsAction->setObjectName(QStringLiteral("actionShortcuts"));
     connect(shortcutsAction, &QAction::triggered, this, [this] { openShortcutsDialog(); });
+    QAction *defaultAppsAction = settingsMenu->addAction(tr("&Domyślny program dla plików…"));
+    defaultAppsAction->setObjectName(QStringLiteral("actionDefaultApps"));
+    connect(defaultAppsAction, &QAction::triggered, this, [this] { openDefaultAppsDialog(); });
 
     QMenu *helpMenu = menuBar()->addMenu(tr("Pomo&c"));
     helpMenu->setObjectName(QStringLiteral("menuHelp"));
@@ -1134,6 +1140,36 @@ ShortcutsDialog *MainWindow::openShortcutsDialog()
     connect(dialog, &QDialog::accepted, this, [this, dialog] {
         applyShortcuts(dialog->entries());
         statusBar()->showMessage(tr("Zmieniono skróty klawiszowe."), 4000);
+    });
+    dialog->open(); // modalne dla okna, bez blokującej pętli exec()
+    return dialog;
+}
+
+DefaultAppsDialog *MainWindow::openDefaultAppsDialog()
+{
+    if (m_defaultAppsDialog)
+        m_defaultAppsDialog->deleteLater();
+    const QString desktopId = AppInfo::applicationId() + QStringLiteral(".desktop");
+    const MimeAppsService service(MimeAppsService::userFiles(), desktopId);
+    // Wpis menu z pakietu: bez niego system nie uruchomi programu dla pliku.
+    const bool installed =
+        !QStandardPaths::locate(QStandardPaths::ApplicationsLocation, desktopId).isEmpty();
+    auto *dialog = new DefaultAppsDialog(service, installed, this);
+    m_defaultAppsDialog = dialog;
+    connect(dialog, &QDialog::accepted, this, [this, dialog, desktopId] {
+        const QStringList enable = dialog->typesToEnable();
+        const QStringList disable = dialog->typesToDisable();
+        if (enable.isEmpty() && disable.isEmpty())
+            return;
+        // Pliki odczytywane ponownie — mogły się zmienić, gdy okno było otwarte.
+        MimeAppsService current(MimeAppsService::userFiles(), desktopId);
+        QString error;
+        if (!current.apply(enable, disable, &error)) {
+            m_prompts->showError(this, tr("Domyślny program dla plików"),
+                                 tr("Nie udało się zapisać pliku domyślnych programów:\n%1").arg(error));
+            return;
+        }
+        statusBar()->showMessage(tr("Zmieniono domyślny program dla plików."), 4000);
     });
     dialog->open(); // modalne dla okna, bez blokującej pętli exec()
     return dialog;

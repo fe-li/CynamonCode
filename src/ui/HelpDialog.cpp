@@ -89,7 +89,10 @@ void HelpDialog::setShortcuts(const QList<ShortcutEntry> &entries)
         {tr("Ustawienia są zapisywane w ~/.config/CynamonCode/cynamoncode.conf."),
          tr("Po ponownym uruchomieniu program przywraca otwarte pliki (bez ich treści); "
             "funkcję można wyłączyć w menu Ustawienia."),
-         tr("Ustawienia → Skróty klawiszowe pozwala zmienić skrót każdego polecenia menu.")});
+         tr("Ustawienia → Skróty klawiszowe pozwala zmienić skrót każdego polecenia menu."),
+         tr("Ustawienia → Domyślny program dla plików: wybrane typy (np. HTML, CSS, "
+            "JavaScript, PHP) otwierają się dwuklikiem w CynamonCode. Dotyczy tylko Twojego "
+            "konta; odznaczenie przywraca poprzedni program.")});
 
     html += section(
         tr("Klawiatura"),

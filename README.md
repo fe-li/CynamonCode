@@ -13,6 +13,7 @@
 - Pasek stanu, ustawienia zapamiętywane między uruchomieniami.
 - Konfigurowalne skróty klawiszowe (Ustawienia → Skróty klawiszowe…), pełna obsługa z klawiatury (Ctrl+Tab, F8), pomoc w programie (F1).
 - Wpis w menu systemu z ikoną, „Otwórz za pomocą” dla plików tekstowych i kodu, pakiet `.deb`.
+- Ustawienia → „Domyślny program dla plików…”: wybrane typy (np. HTML, CSS, JS, PHP) otwierają się dwuklikiem w CynamonCode — tylko dla Twojego konta, odwracalnie.
 
 ## Technologie
 
@@ -61,7 +62,7 @@ cpack --config build-release/CPackConfig.cmake -B build-release/pakiety
 sudo apt install ./build-release/pakiety/cynamoncode_1.0.0_amd64.deb
 ```
 
-Po instalacji program jest w menu (Akcesoria → CynamonCode) i na liście „Otwórz za pomocą”; pakiet nie zmienia domyślnych programów. Odinstalowanie: `sudo apt remove cynamoncode`. Opis plików pakietu: `docs/LINUX_MINT.md`.
+Po instalacji program jest w menu (Akcesoria → CynamonCode) i na liście „Otwórz za pomocą”; pakiet nie zmienia domyślnych programów — robi to dopiero użytkownik w Ustawienia → „Domyślny program dla plików…”. Odinstalowanie: `sudo apt remove cynamoncode`. Opis plików pakietu: `docs/LINUX_MINT.md`.
 
 ## Struktura
 

@@ -16,6 +16,7 @@
 #include <QHash>
 #include <QList>
 #include <QMainWindow>
+#include <QPointer>
 #include <QSet>
 #include <QSettings> // pełny typ: domyślny argument std::unique_ptr<QSettings>
 
@@ -33,6 +34,7 @@ class QTabWidget;
 namespace cynamoncode {
 
 class AboutDialog;
+class DefaultAppsDialog;
 class EditorWidget;
 class FileTreeDock;
 class FindReplaceDialog;
@@ -107,6 +109,9 @@ public:
     // pierwszym zmienionym.
     void applyShortcuts(const QList<ShortcutEntry> &entries);
     ShortcutsDialog *openShortcutsDialog();
+    // Domyślny program dla typów plików (D047): pliki mimeapps.list użytkownika
+    // ($XDG_CONFIG_HOME), zmiana dopiero po „OK”.
+    DefaultAppsDialog *openDefaultAppsDialog();
     HelpDialog *openHelp();
 
     // Nawigacja klawiaturą (D046).
@@ -242,6 +247,7 @@ private:
     QAction *m_previousTabAction = nullptr;
     QAction *m_otherPaneAction = nullptr;
     ShortcutsDialog *m_shortcutsDialog = nullptr;
+    QPointer<DefaultAppsDialog> m_defaultAppsDialog;
     HelpDialog *m_helpDialog = nullptr;
     FindReplaceDialog *m_findDialog = nullptr;
     AboutDialog *m_aboutDialog = nullptr;

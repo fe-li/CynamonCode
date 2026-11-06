@@ -4,13 +4,14 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/). Wersj
 
 ## [Niewydane]
 
-### Zmieniono (2026-11-06)
-
-- Pakiet `.deb`: `qt6-translations-l10n` w polu `Recommends` zamiast `Suggests` — `apt` domyślnie instaluje polskie napisy standardowych okien Qt (wybór pliku, czcionki).
-
 ## [1.0.0] — 2026-11-06
 
 Pierwsza stabilna wersja (E5), tag `v1.0.0`. Zawiera także zmiany z wersji 0.1 i 0.2 opisane niżej.
+
+### Dodano (po E5, przed tagiem, 2026-11-06)
+
+- Ustawienia → „Domyślny program dla plików…”: wybrane typy (HTML, CSS, JavaScript, PHP i inne z wpisu menu) otwierają się dwuklikiem w CynamonCode; zapis tylko dla bieżącego konta w `~/.config/mimeapps.list`, odznaczenie przywraca poprzedni program (D047). Testy `tst_mime_apps`, `tst_default_apps`.
+- Pakiet `.deb`: `qt6-translations-l10n` w polu `Recommends` zamiast `Suggests` — `apt` domyślnie instaluje polskie napisy standardowych okien Qt (wybór pliku, czcionki).
 
 ### Dodano (E5, 2026-11-06)
 

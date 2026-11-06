@@ -25,6 +25,7 @@ cynamoncode_add_qt_test(tst_search unit unit/tst_search.cpp cynamoncode_core)
 cynamoncode_add_qt_test(tst_settings unit unit/tst_settings.cpp cynamoncode_core)
 cynamoncode_add_qt_test(tst_session unit unit/tst_session.cpp cynamoncode_core)
 cynamoncode_add_qt_test(tst_disk_changes unit unit/tst_disk_changes.cpp cynamoncode_core)
+cynamoncode_add_qt_test(tst_mime_apps unit unit/tst_mime_apps.cpp cynamoncode_core)
 
 # Testy GUI: bez serwera wyświetlania uruchamiaj z QT_QPA_PLATFORM=offscreen
 # (scripts/test.sh robi to sam; preset testowy debug-offscreen).
@@ -43,6 +44,8 @@ cynamoncode_add_qt_test(tst_session_window gui gui/tst_session_window.cpp cynamo
 cynamoncode_add_qt_test(tst_workspace gui gui/tst_workspace.cpp cynamoncode_ui)
 cynamoncode_add_qt_test(tst_find_in_all gui gui/tst_find_in_all.cpp cynamoncode_ui)
 cynamoncode_add_qt_test(tst_shortcuts gui gui/tst_shortcuts.cpp cynamoncode_ui)
+cynamoncode_add_qt_test(tst_default_apps gui gui/tst_default_apps.cpp cynamoncode_ui)
+target_compile_definitions(tst_default_apps PRIVATE CYNAMONCODE_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
 # Wydajność (D039): łagodne limity czasu; etykieta perf pozwala pominąć: ctest -LE perf
 cynamoncode_add_qt_test(tst_large_files perf gui/tst_large_files.cpp cynamoncode_ui)

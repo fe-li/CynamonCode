@@ -60,6 +60,8 @@ add_library(cynamoncode_core STATIC
     src/services/DocumentManager.h
     src/services/LanguageRegistry.cpp
     src/services/LanguageRegistry.h
+    src/services/MimeAppsService.cpp
+    src/services/MimeAppsService.h
     src/services/SearchService.cpp
     src/services/SearchService.h
     src/services/SessionService.cpp
@@ -88,6 +90,8 @@ add_library(cynamoncode_ui STATIC
     src/editor/ThemePalette.h
     src/ui/AboutDialog.cpp
     src/ui/AboutDialog.h
+    src/ui/DefaultAppsDialog.cpp
+    src/ui/DefaultAppsDialog.h
     src/ui/FileTreeDock.cpp
     src/ui/FileTreeDock.h
     src/ui/FindReplaceDialog.cpp
