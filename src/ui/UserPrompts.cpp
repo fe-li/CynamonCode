@@ -2,6 +2,7 @@
 
 #include <QAbstractButton>
 #include <QFileDialog>
+#include <QFontDialog>
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QPushButton>
@@ -80,6 +81,69 @@ MixedLineEndingChoice DialogPrompts::askMixedLineEndings(QWidget *parent,
 void DialogPrompts::showError(QWidget *parent, const QString &title, const QString &message)
 {
     QMessageBox::warning(parent, title, message);
+}
+
+ExternalChangeChoice DialogPrompts::askExternalChange(QWidget *parent, const QString &documentName,
+                                                     bool hasLocalChanges)
+{
+    QMessageBox box(parent);
+    box.setIcon(hasLocalChanges ? QMessageBox::Warning : QMessageBox::Question);
+    box.setWindowTitle(tr("Plik zmieniony na dysku"));
+    QPushButton *reload = nullptr;
+    QPushButton *keep = nullptr;
+    if (hasLocalChanges) {
+        box.setText(tr("Plik „%1” został zmieniony przez inny program, a dokument ma "
+                       "niezapisane zmiany.")
+                        .arg(documentName));
+        box.setInformativeText(tr("Przeładowanie porzuci Twoje zmiany. Zachowanie ich spowoduje "
+                                  "pytanie przed nadpisaniem pliku przy zapisie."));
+        reload = box.addButton(tr("Przeładuj i porzuć moje zmiany"), QMessageBox::DestructiveRole);
+        keep = box.addButton(tr("Zachowaj moje zmiany"), QMessageBox::RejectRole);
+    } else {
+        box.setText(tr("Plik „%1” został zmieniony przez inny program.").arg(documentName));
+        box.setInformativeText(tr("Przeładować go z dysku?"));
+        reload = box.addButton(tr("Przeładuj"), QMessageBox::AcceptRole);
+        keep = box.addButton(tr("Zostaw"), QMessageBox::RejectRole);
+    }
+    box.setDefaultButton(keep);
+    box.setEscapeButton(keep);
+    box.exec();
+    return box.clickedButton() == reload ? ExternalChangeChoice::Reload : ExternalChangeChoice::Keep;
+}
+
+SaveConflictChoice DialogPrompts::askSaveConflict(QWidget *parent, const QString &path)
+{
+    QMessageBox box(QMessageBox::Warning, tr("Konflikt zapisu"),
+                    tr("Plik na dysku zmienił się od ostatniego wczytania lub zapisu:\n%1")
+                        .arg(path),
+                    QMessageBox::NoButton, parent);
+    box.setInformativeText(tr("Nadpisanie usunie zmiany wprowadzone przez inny program."));
+    QPushButton *overwrite = box.addButton(tr("Nadpisz"), QMessageBox::DestructiveRole);
+    QPushButton *saveAs = box.addButton(tr("Zapisz jako…"), QMessageBox::AcceptRole);
+    QPushButton *cancel = box.addButton(tr("Anuluj"), QMessageBox::RejectRole);
+    box.setDefaultButton(cancel);
+    box.setEscapeButton(cancel);
+    box.exec();
+    if (box.clickedButton() == overwrite)
+        return SaveConflictChoice::Overwrite;
+    if (box.clickedButton() == saveAs)
+        return SaveConflictChoice::SaveAs;
+    return SaveConflictChoice::Cancel;
+}
+
+void DialogPrompts::showInfo(QWidget *parent, const QString &title, const QString &message)
+{
+    QMessageBox::information(parent, title, message);
+}
+
+std::optional<QFont> DialogPrompts::askFont(QWidget *parent, const QFont &current)
+{
+    bool accepted = false;
+    const QFont font = QFontDialog::getFont(&accepted, current, parent, tr("Czcionka edytora"),
+                                            QFontDialog::MonospacedFonts);
+    if (!accepted)
+        return std::nullopt;
+    return font;
 }
 
 } // namespace cynamoncode

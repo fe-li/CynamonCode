@@ -2,6 +2,7 @@
 
 #include "editor/SyntaxHighlighter.h"
 #include "services/Indentation.h"
+#include "services/TextPositions.h"
 
 #include <Qsci/qscilexer.h>
 #include <Qsci/qscilexerhtml.h>
@@ -114,11 +115,64 @@ void EditorWidget::setTheme(const ThemePalette &palette)
     setLanguage(m_language);
 }
 
+void EditorWidget::setEditorFont(const QFont &font)
+{
+    m_font = font;
+    setLanguage(m_language); // lexer dostaje czcionkę dla wszystkich stylów
+}
+
+void EditorWidget::setLineNumbersVisible(bool visible)
+{
+    m_lineNumbersVisible = visible;
+    updateLineNumberMarginWidth();
+}
+
 void EditorWidget::setLexer(QsciLexer *lexer)
 {
     QsciScintilla::setLexer(lexer);
     // Lexer nie może przywrócić podpowiedzi (CLAUDE.md).
     disableSuggestions();
+}
+
+void EditorWidget::selectRange(const QString &text, qsizetype start, qsizetype length)
+{
+    const QList<qsizetype> bytes = TextPositions::toUtf8Offsets(text, {start, start + length});
+    SendScintilla(QsciScintillaBase::SCI_SETSEL, static_cast<unsigned long>(bytes.at(0)),
+                  static_cast<long>(bytes.at(1)));
+    SendScintilla(QsciScintillaBase::SCI_SCROLLCARET);
+}
+
+std::pair<qsizetype, qsizetype> EditorWidget::selectionRange(const QString &text) const
+{
+    const long start = SendScintilla(QsciScintillaBase::SCI_GETSELECTIONSTART);
+    const long end = SendScintilla(QsciScintillaBase::SCI_GETSELECTIONEND);
+    return {TextPositions::toUtf16Index(text, start), TextPositions::toUtf16Index(text, end)};
+}
+
+void EditorWidget::applyReplacements(const QString &text, const QList<Replacement> &replacements)
+{
+    if (replacements.isEmpty())
+        return;
+
+    QList<qsizetype> indices;
+    indices.reserve(replacements.size() * 2);
+    for (const Replacement &replacement : replacements) {
+        indices.append(replacement.start);
+        indices.append(replacement.start + replacement.length);
+    }
+    const QList<qsizetype> bytes = TextPositions::toUtf8Offsets(text, indices);
+
+    beginUndoAction();
+    // Od końca — wcześniejsze pozycje bajtowe pozostają ważne.
+    for (qsizetype i = replacements.size() - 1; i >= 0; --i) {
+        const QByteArray utf8 = replacements.at(i).text.toUtf8();
+        SendScintilla(QsciScintillaBase::SCI_SETTARGETRANGE,
+                      static_cast<unsigned long>(bytes.at(2 * i)),
+                      static_cast<long>(bytes.at(2 * i + 1)));
+        SendScintilla(QsciScintillaBase::SCI_REPLACETARGET,
+                      static_cast<unsigned long>(utf8.size()), utf8.constData());
+    }
+    endUndoAction();
 }
 
 void EditorWidget::keyPressEvent(QKeyEvent *event)
@@ -281,6 +335,10 @@ void EditorWidget::applyEditorColors()
 
 void EditorWidget::updateLineNumberMarginWidth()
 {
+    if (!m_lineNumbersVisible) {
+        setMarginWidth(LineNumberMargin, 0);
+        return;
+    }
     const qsizetype digits = QString::number(std::max(lines(), 1)).size();
     setMarginWidth(LineNumberMargin, QString(digits + 1, QLatin1Char('9')));
 }

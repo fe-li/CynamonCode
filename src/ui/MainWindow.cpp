@@ -2,12 +2,17 @@
 
 #include "editor/EditorWidget.h"
 #include "services/LanguageRegistry.h"
+#include "services/SearchService.h"
+#include "ui/FindReplaceDialog.h"
 
 #include <QAction>
 #include <QActionGroup>
 #include <QCloseEvent>
 #include <QDir>
 #include <QFileInfo>
+#include <QFontDatabase>
+#include <QSettings>
+#include <QTimer>
 #include <QKeySequence>
 #include <QLabel>
 #include <QMenu>
@@ -36,15 +41,27 @@ QString escapeMnemonic(QString text)
 
 } // namespace
 
-MainWindow::MainWindow(std::unique_ptr<UserPrompts> prompts, QWidget *parent)
+MainWindow::MainWindow(std::unique_ptr<UserPrompts> prompts, std::unique_ptr<QSettings> settings,
+                       QWidget *parent)
     : QMainWindow(parent)
     , m_prompts(std::move(prompts))
+    , m_settingsStore(std::move(settings))
 {
     if (!m_prompts)
         m_prompts = std::make_unique<DialogPrompts>();
+    if (m_settingsStore) {
+        m_settingsService = std::make_unique<SettingsService>(*m_settingsStore);
+        m_editorSettings = m_settingsService->load();
+    }
+    m_theme = m_editorSettings.theme == QLatin1String("dark") ? ThemeId::Dark : ThemeId::Light;
 
     setObjectName(QStringLiteral("MainWindow"));
     resize(1024, 720);
+    if (m_settingsService) {
+        const QByteArray geometry = m_settingsService->windowGeometry();
+        if (!geometry.isEmpty())
+            restoreGeometry(geometry);
+    }
 
     m_tabs = new QTabWidget(this);
     m_tabs->setObjectName(QStringLiteral("documentTabs"));
@@ -53,15 +70,24 @@ MainWindow::MainWindow(std::unique_ptr<UserPrompts> prompts, QWidget *parent)
     m_tabs->setDocumentMode(true);
     setCentralWidget(m_tabs);
 
-    m_cursorLabel = new QLabel(this);
-    m_cursorLabel->setObjectName(QStringLiteral("cursorLabel"));
-    statusBar()->addPermanentWidget(m_cursorLabel);
+    const auto addStatusLabel = [this](const char *name) {
+        auto *label = new QLabel(this);
+        label->setObjectName(QLatin1String(name));
+        statusBar()->addPermanentWidget(label);
+        return label;
+    };
+    m_cursorLabel = addStatusLabel("cursorLabel");
+    m_languageLabel = addStatusLabel("languageLabel");
+    m_encodingLabel = addStatusLabel("encodingLabel");
+    m_lineEndingLabel = addStatusLabel("lineEndingLabel");
 
     createActions();
     createMenus();
     createViewAndLanguageMenus();
 
     connect(m_tabs, &QTabWidget::tabCloseRequested, this, [this](int index) { closeTab(index); });
+    connect(&m_fileWatcher, &FileWatchService::fileChanged, this,
+            &MainWindow::onWatchedFileChanged);
     connect(m_tabs, &QTabWidget::currentChanged, this, [this] {
         updateWindowTitle();
         updateActions();
@@ -113,6 +139,8 @@ bool MainWindow::openFile(const QString &path)
         return false;
     }
 
+    m_fileWatcher.watch(document->filePath);
+
     // Jak w typowych edytorach: pusta, nieruszona karta „Nowy” ustępuje otwartemu plikowi.
     if (pristine)
         closeTab(m_tabs->indexOf(pristine));
@@ -130,6 +158,68 @@ void MainWindow::setTheme(ThemeId theme)
         editorAt(i)->setTheme(palette);
     m_lightThemeAction->setChecked(theme == ThemeId::Light);
     m_darkThemeAction->setChecked(theme == ThemeId::Dark);
+    changeSettings([theme](EditorSettings &settings) {
+        settings.theme = theme == ThemeId::Dark ? QStringLiteral("dark") : QStringLiteral("light");
+    });
+}
+
+void MainWindow::setZoom(int zoom)
+{
+    zoom = std::clamp(zoom, SettingsService::MinZoom, SettingsService::MaxZoom);
+    if (zoom == m_editorSettings.zoom)
+        return;
+    changeSettings([zoom](EditorSettings &settings) { settings.zoom = zoom; });
+}
+
+QFont MainWindow::editorFont() const
+{
+    QFont font = m_editorSettings.fontFamily.isEmpty()
+                     ? QFontDatabase::systemFont(QFontDatabase::FixedFont)
+                     : QFont(m_editorSettings.fontFamily);
+    if (m_editorSettings.fontPointSize > 0)
+        font.setPointSize(m_editorSettings.fontPointSize);
+    return font;
+}
+
+void MainWindow::applyEditorSettings(EditorWidget *editor) const
+{
+    const QFont font = editorFont();
+    if (editor->editorFont() != font)
+        editor->setEditorFont(font);
+    editor->setWrapMode(m_editorSettings.wordWrap ? QsciScintilla::WrapWord
+                                                  : QsciScintilla::WrapNone);
+    editor->setLineNumbersVisible(m_editorSettings.lineNumbers);
+    editor->setWhitespaceVisibility(m_editorSettings.showWhitespace ? QsciScintilla::WsVisible
+                                                                    : QsciScintilla::WsInvisible);
+    editor->setEolVisibility(m_editorSettings.showLineEndings);
+    if (editor->SendScintilla(QsciScintillaBase::SCI_GETZOOM) != m_editorSettings.zoom)
+        editor->zoomTo(m_editorSettings.zoom);
+}
+
+void MainWindow::changeSettings(const std::function<void(EditorSettings &)> &change)
+{
+    change(m_editorSettings);
+    for (int i = 0; i < m_tabs->count(); ++i)
+        applyEditorSettings(editorAt(i));
+    if (m_settingsService)
+        m_settingsService->save(m_editorSettings);
+
+    if (m_wordWrapAction) {
+        m_wordWrapAction->setChecked(m_editorSettings.wordWrap);
+        m_lineNumbersAction->setChecked(m_editorSettings.lineNumbers);
+        m_whitespaceAction->setChecked(m_editorSettings.showWhitespace);
+        m_lineEndingsAction->setChecked(m_editorSettings.showLineEndings);
+    }
+}
+
+void MainWindow::chooseFont()
+{
+    if (const std::optional<QFont> font = m_prompts->askFont(this, editorFont())) {
+        changeSettings([&font](EditorSettings &settings) {
+            settings.fontFamily = font->family();
+            settings.fontPointSize = font->pointSize() > 0 ? font->pointSize() : 0;
+        });
+    }
 }
 
 int MainWindow::documentCount() const
@@ -155,6 +245,8 @@ void MainWindow::closeEvent(QCloseEvent *event)
             return;
         }
     }
+    if (m_settingsService)
+        m_settingsService->saveWindowGeometry(saveGeometry());
     event->accept();
 }
 
@@ -264,8 +356,154 @@ void MainWindow::createMenus()
     editMenu->addAction(m_pasteAction);
     editMenu->addSeparator();
     editMenu->addAction(m_selectAllAction);
-    editMenu->addSeparator();
-    editMenu->addAction(m_goToLineAction);
+
+    createSearchActions();
+    QMenu *searchMenu = menuBar()->addMenu(tr("&Szukaj"));
+    searchMenu->setObjectName(QStringLiteral("menuSearch"));
+    searchMenu->addAction(m_findAction);
+    searchMenu->addAction(m_replaceAction);
+    searchMenu->addAction(m_findNextAction);
+    searchMenu->addAction(m_findPreviousAction);
+    searchMenu->addSeparator();
+    searchMenu->addAction(m_goToLineAction);
+}
+
+void MainWindow::createSearchActions()
+{
+    m_findAction = new QAction(tr("&Znajdź…"), this);
+    m_findAction->setObjectName(QStringLiteral("actionFind"));
+    m_findAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_F));
+    connect(m_findAction, &QAction::triggered, this, [this] { openFindDialog(false); });
+
+    m_replaceAction = new QAction(tr("Za&mień…"), this);
+    m_replaceAction->setObjectName(QStringLiteral("actionReplace"));
+    m_replaceAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_H));
+    connect(m_replaceAction, &QAction::triggered, this, [this] { openFindDialog(true); });
+
+    m_findNextAction = new QAction(tr("Znajdź &następny"), this);
+    m_findNextAction->setObjectName(QStringLiteral("actionFindNext"));
+    m_findNextAction->setShortcut(QKeySequence(Qt::Key_F3));
+    connect(m_findNextAction, &QAction::triggered, this, [this] { findFromMenu(true); });
+
+    m_findPreviousAction = new QAction(tr("Znajdź &poprzedni"), this);
+    m_findPreviousAction->setObjectName(QStringLiteral("actionFindPrevious"));
+    m_findPreviousAction->setShortcut(QKeySequence(Qt::SHIFT | Qt::Key_F3));
+    connect(m_findPreviousAction, &QAction::triggered, this, [this] { findFromMenu(false); });
+}
+
+FindReplaceDialog *MainWindow::findDialog()
+{
+    if (!m_findDialog) {
+        m_findDialog = new FindReplaceDialog(this);
+        connect(m_findDialog, &FindReplaceDialog::findRequested, this,
+                [this](bool forward) { findInCurrent(m_findDialog->options(), forward); });
+        connect(m_findDialog, &FindReplaceDialog::replaceRequested, this, [this] {
+            replaceInCurrent(m_findDialog->options(), m_findDialog->replacement());
+        });
+        connect(m_findDialog, &FindReplaceDialog::replaceAllRequested, this, [this] {
+            replaceAllInCurrent(m_findDialog->options(), m_findDialog->replacement());
+        });
+    }
+    return m_findDialog;
+}
+
+void MainWindow::openFindDialog(bool replace)
+{
+    FindReplaceDialog *dialog = findDialog();
+    if (EditorWidget *editor = currentEditor()) {
+        const QString selected = editor->selectedText();
+        if (!selected.isEmpty() && !selected.contains(QLatin1Char('\n'))
+            && !selected.contains(QLatin1Char('\r')))
+            dialog->setPattern(selected);
+    }
+    if (replace)
+        dialog->showForReplace();
+    else
+        dialog->showForFind();
+}
+
+void MainWindow::findFromMenu(bool forward)
+{
+    if (!m_findDialog || !m_findDialog->hasPattern()) {
+        openFindDialog(false);
+        return;
+    }
+    findInCurrent(m_findDialog->options(), forward);
+}
+
+bool MainWindow::findInCurrent(const SearchOptions &options, bool forward)
+{
+    EditorWidget *editor = currentEditor();
+    if (!editor || options.pattern.isEmpty())
+        return false;
+    if (const QString error = SearchService::patternError(options); !error.isEmpty()) {
+        reportSearchStatus(error);
+        return false;
+    }
+
+    const QString text = editor->text();
+    const auto [selectionStart, selectionEnd] = editor->selectionRange(text);
+    const std::optional<SearchMatch> match =
+        SearchService::find(text, options, forward ? selectionEnd : selectionStart, forward);
+    if (!match) {
+        reportSearchStatus(tr("Nie znaleziono „%1”.").arg(options.pattern));
+        return false;
+    }
+    editor->selectRange(text, match->start, match->length);
+    reportSearchStatus(QString());
+    return true;
+}
+
+bool MainWindow::replaceInCurrent(const SearchOptions &options, const QString &replacement)
+{
+    EditorWidget *editor = currentEditor();
+    if (!editor || options.pattern.isEmpty())
+        return false;
+    if (const QString error = SearchService::patternError(options); !error.isEmpty()) {
+        reportSearchStatus(error);
+        return false;
+    }
+
+    // Zaznaczenie będące dopasowaniem zostaje zamienione; potem następne wystąpienie.
+    const QString text = editor->text();
+    const auto [selectionStart, selectionEnd] = editor->selectionRange(text);
+    const std::optional<SearchMatch> match = SearchService::matchAt(text, options, selectionStart);
+    if (match && selectionEnd - selectionStart == match->length) {
+        const QString inserted =
+            SearchService::replacementFor(text, options, selectionStart, replacement);
+        editor->applyReplacements(text, {{selectionStart, match->length, inserted}});
+        editor->selectRange(editor->text(), selectionStart + inserted.size(), 0);
+    }
+    return findInCurrent(options, true);
+}
+
+int MainWindow::replaceAllInCurrent(const SearchOptions &options, const QString &replacement)
+{
+    EditorWidget *editor = currentEditor();
+    if (!editor || options.pattern.isEmpty())
+        return 0;
+    if (const QString error = SearchService::patternError(options); !error.isEmpty()) {
+        reportSearchStatus(error);
+        return 0;
+    }
+
+    const QString text = editor->text();
+    const QList<Replacement> replacements = SearchService::replaceAll(text, options, replacement);
+    editor->applyReplacements(text, replacements);
+    reportSearchStatus(replacements.isEmpty()
+                           ? tr("Nie znaleziono „%1”.").arg(options.pattern)
+                           : tr("Liczba zamian: %1.").arg(replacements.size()));
+    return static_cast<int>(replacements.size());
+}
+
+void MainWindow::reportSearchStatus(const QString &message)
+{
+    if (m_findDialog)
+        m_findDialog->setStatus(message);
+    if (message.isEmpty())
+        statusBar()->clearMessage();
+    else
+        statusBar()->showMessage(message, 5000);
 }
 
 void MainWindow::createViewAndLanguageMenus()
@@ -284,9 +522,11 @@ void MainWindow::createViewAndLanguageMenus()
         action->setCheckable(true);
         themeGroup->addAction(action);
     }
-    m_lightThemeAction->setChecked(true);
+    m_lightThemeAction->setChecked(m_theme == ThemeId::Light);
+    m_darkThemeAction->setChecked(m_theme == ThemeId::Dark);
     connect(m_lightThemeAction, &QAction::triggered, this, [this] { setTheme(ThemeId::Light); });
     connect(m_darkThemeAction, &QAction::triggered, this, [this] { setTheme(ThemeId::Dark); });
+    createSettingsActions(viewMenu);
 
     QMenu *languageMenu = menuBar()->addMenu(tr("&Język"));
     languageMenu->setObjectName(QStringLiteral("menuLanguage"));
@@ -304,6 +544,62 @@ void MainWindow::createViewAndLanguageMenus()
         if (language == LanguageId::Plain)
             languageMenu->addSeparator();
     }
+
+    QMenu *settingsMenu = menuBar()->addMenu(tr("&Ustawienia"));
+    settingsMenu->setObjectName(QStringLiteral("menuSettings"));
+    settingsMenu->addAction(m_fontAction);
+}
+
+void MainWindow::createSettingsActions(QMenu *viewMenu)
+{
+    const auto makeToggle = [this, viewMenu](const QString &text, const char *name, bool checked,
+                                             auto setter) {
+        auto *action = viewMenu->addAction(text);
+        action->setObjectName(QLatin1String(name));
+        action->setCheckable(true);
+        action->setChecked(checked);
+        connect(action, &QAction::toggled, this, [this, setter](bool on) {
+            changeSettings([setter, on](EditorSettings &settings) { setter(settings, on); });
+        });
+        return action;
+    };
+
+    viewMenu->addSeparator();
+    m_wordWrapAction = makeToggle(tr("&Zawijaj wiersze"), "actionWordWrap",
+                                  m_editorSettings.wordWrap,
+                                  [](EditorSettings &s, bool on) { s.wordWrap = on; });
+    m_lineNumbersAction = makeToggle(tr("&Numery wierszy"), "actionLineNumbers",
+                                     m_editorSettings.lineNumbers,
+                                     [](EditorSettings &s, bool on) { s.lineNumbers = on; });
+    m_whitespaceAction = makeToggle(tr("Pokaż &białe znaki"), "actionShowWhitespace",
+                                    m_editorSettings.showWhitespace,
+                                    [](EditorSettings &s, bool on) { s.showWhitespace = on; });
+    m_lineEndingsAction = makeToggle(tr("Pokaż &końce linii"), "actionShowLineEndings",
+                                     m_editorSettings.showLineEndings,
+                                     [](EditorSettings &s, bool on) { s.showLineEndings = on; });
+
+    viewMenu->addSeparator();
+    m_zoomInAction = viewMenu->addAction(tr("Po&większ"));
+    m_zoomInAction->setObjectName(QStringLiteral("actionZoomIn"));
+    m_zoomInAction->setShortcuts(
+        {QKeySequence(Qt::CTRL | Qt::Key_Plus), QKeySequence(Qt::CTRL | Qt::Key_Equal)});
+    connect(m_zoomInAction, &QAction::triggered, this,
+            [this] { setZoom(m_editorSettings.zoom + 1); });
+
+    m_zoomOutAction = viewMenu->addAction(tr("Po&mniejsz"));
+    m_zoomOutAction->setObjectName(QStringLiteral("actionZoomOut"));
+    m_zoomOutAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Minus));
+    connect(m_zoomOutAction, &QAction::triggered, this,
+            [this] { setZoom(m_editorSettings.zoom - 1); });
+
+    m_zoomResetAction = viewMenu->addAction(tr("&Przywróć rozmiar"));
+    m_zoomResetAction->setObjectName(QStringLiteral("actionZoomReset"));
+    m_zoomResetAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_0));
+    connect(m_zoomResetAction, &QAction::triggered, this, [this] { setZoom(0); });
+
+    m_fontAction = new QAction(tr("&Czcionka…"), this);
+    m_fontAction->setObjectName(QStringLiteral("actionFont"));
+    connect(m_fontAction, &QAction::triggered, this, [this] { chooseFont(); });
 }
 
 void MainWindow::newDocument()
@@ -334,7 +630,7 @@ bool MainWindow::saveAll()
 {
     for (int i = 0; i < m_tabs->count(); ++i) {
         EditorWidget *editor = editorAt(i);
-        if (!editor->isModified())
+        if (!needsSaving(editor)) // także plik usunięty z dysku (D026)
             continue;
         m_tabs->setCurrentIndex(i);
         if (!saveEditor(editor, false))
@@ -378,6 +674,7 @@ void MainWindow::chooseLanguage(LanguageId language)
     m_documents.setLanguage(documentIdOf(editor), language);
     editor->setLanguage(language);
     updateLanguageActions();
+    updateCursorStatus();
 }
 
 void MainWindow::handleMixedLineEndings(EditorWidget *editor)
@@ -390,13 +687,14 @@ void MainWindow::handleMixedLineEndings(EditorWidget *editor)
         editor->convertEols(QsciScintilla::EolUnix);
         editor->setEolMode(QsciScintilla::EolUnix);
         m_documents.setLineEnding(id, LineEnding::LF);
-        return;
+        break;
     case MixedLineEndingChoice::ConvertToCrLf:
         editor->convertEols(QsciScintilla::EolWindows);
         editor->setEolMode(QsciScintilla::EolWindows);
         m_documents.setLineEnding(id, LineEnding::CRLF);
-        return;
+        break;
     }
+    updateCursorStatus();
 }
 
 void MainWindow::syncEditorLanguage(EditorWidget *editor)
@@ -404,11 +702,13 @@ void MainWindow::syncEditorLanguage(EditorWidget *editor)
     const DocumentState *document = m_documents.document(documentIdOf(editor));
     if (document && editor->language() != document->language)
         editor->setLanguage(document->language);
-    if (editor == currentEditor())
+    if (editor == currentEditor()) {
         updateLanguageActions();
+        updateCursorStatus();
+    }
 }
 
-bool MainWindow::saveEditor(EditorWidget *editor, bool askForPath)
+bool MainWindow::saveEditor(EditorWidget *editor, bool askForPath, bool suggestCopyName)
 {
     const DocumentId id = documentIdOf(editor);
     const DocumentState *document = m_documents.document(id);
@@ -416,6 +716,7 @@ bool MainWindow::saveEditor(EditorWidget *editor, bool askForPath)
         return false;
 
     const QString name = displayName(id);
+    const QString previousPath = document->filePath;
     SaveOutcome outcome;
     if (askForPath || document->isUntitled()) {
         // Nowy dokument: rozszerzenie zgodne z językiem, np. „Nowy 1.html” (D025).
@@ -424,14 +725,38 @@ bool MainWindow::saveEditor(EditorWidget *editor, bool askForPath)
             const QString extension = LanguageRegistry::defaultExtension(editor->language());
             suggested = QDir::home().filePath(
                 extension.isEmpty() ? name : name + QLatin1Char('.') + extension);
+        } else if (suggestCopyName) {
+            // „Zapisz jako…” z konfliktu: inna nazwa niż plik zmieniony przez inny program.
+            const QFileInfo info(document->filePath);
+            const QString base = info.completeBaseName() + tr(" (kopia)");
+            suggested = info.dir().filePath(
+                info.suffix().isEmpty() ? base : base + QLatin1Char('.') + info.suffix());
         }
+        beginPrompt(id);
         const QString path = m_prompts->askSavePath(this, suggested);
+        endPrompt(id);
         if (path.isEmpty())
             return false;
         // Po dialogu (zagnieżdżona pętla zdarzeń) korzystamy tylko z id, nie z `document`.
         outcome = m_documents.saveAs(id, path, editor->text());
     } else {
         outcome = m_documents.save(id, editor->text());
+        if (outcome.failure == SaveFailure::DiskChanged) {
+            // Plik zmienił się na dysku od wczytania/zapisu (D027).
+            beginPrompt(id);
+            const SaveConflictChoice choice =
+                m_prompts->askSaveConflict(this, QDir::toNativeSeparators(previousPath));
+            endPrompt(id);
+            switch (choice) {
+            case SaveConflictChoice::Overwrite:
+                outcome = m_documents.save(id, editor->text(), true);
+                break;
+            case SaveConflictChoice::SaveAs:
+                return saveEditor(editor, true, true);
+            case SaveConflictChoice::Cancel:
+                return false;
+            }
+        }
     }
 
     if (!outcome.ok()) {
@@ -441,6 +766,15 @@ bool MainWindow::saveEditor(EditorWidget *editor, bool askForPath)
 
     // Stan „zapisany” dopiero po potwierdzonym commit() (D014).
     editor->setModified(false);
+    if (const DocumentState *saved = m_documents.document(id)) {
+        // QSaveFile podmienia plik (nowy i-węzeł) — obserwacja od nowa (D030).
+        if (saved->filePath != previousPath) {
+            m_fileWatcher.unwatch(previousPath);
+            m_fileWatcher.watch(saved->filePath);
+        } else {
+            m_fileWatcher.rewatch(saved->filePath);
+        }
+    }
     updateTabTitle(editor);
     updateWindowTitle();
     // Po „Zapisz jako” z nowym rozszerzeniem język mógł się zmienić (D023).
@@ -448,13 +782,151 @@ bool MainWindow::saveEditor(EditorWidget *editor, bool askForPath)
     return true;
 }
 
+bool MainWindow::needsSaving(const EditorWidget *editor) const
+{
+    if (!editor)
+        return false;
+    const DocumentState *document = m_documents.document(documentIdOf(editor));
+    // Plik usunięty z dysku: treść istnieje już tylko w edytorze (D026).
+    return editor->isModified() || (document && document->missingOnDisk);
+}
+
+void MainWindow::onWatchedFileChanged(const QString &path)
+{
+    for (int i = 0; i < m_tabs->count(); ++i) {
+        EditorWidget *editor = editorAt(i);
+        const DocumentState *document = m_documents.document(documentIdOf(editor));
+        if (document && document->filePath == path)
+            handleDiskChange(editor);
+    }
+}
+
+void MainWindow::beginPrompt(DocumentId id)
+{
+    ++m_promptDepth[id];
+}
+
+void MainWindow::endPrompt(DocumentId id)
+{
+    if (--m_promptDepth[id] > 0)
+        return;
+    m_promptDepth.remove(id);
+    // Zdarzenie dysku z czasu pytania — obsługa po powrocie do głównej pętli.
+    if (m_pendingDiskEvents.remove(id)) {
+        QTimer::singleShot(0, this, [this, id] {
+            if (EditorWidget *editor = findEditor(id))
+                handleDiskChange(editor);
+        });
+    }
+}
+
+void MainWindow::handleDiskChange(EditorWidget *editor)
+{
+    const DocumentId id = documentIdOf(editor);
+    // Trwa pytanie o ten dokument (zagnieżdżona pętla zdarzeń) — odłóż, nie gub.
+    if (m_promptDepth.value(id) > 0) {
+        m_pendingDiskEvents.insert(id);
+        return;
+    }
+    const DocumentState *document = m_documents.document(id);
+    if (!document)
+        return;
+    const bool wasMissing = document->missingOnDisk;
+    const QString path = QDir::toNativeSeparators(document->filePath);
+
+    // Zdarzenie już przyszło — zawsze pełne porównanie treści (D030).
+    switch (m_documents.checkDisk(id, false)) {
+    case DiskStatus::Unchanged:
+        break;
+    case DiskStatus::Missing:
+        if (!wasMissing) {
+            beginPrompt(id);
+            m_prompts->showInfo(this, tr("Plik usunięty z dysku"),
+                                tr("Plik %1 został usunięty lub przeniesiony.\n\nTreść pozostaje "
+                                   "w edytorze — zapisz ją, jeśli jest potrzebna.")
+                                    .arg(path));
+            endPrompt(id);
+        }
+        break;
+    case DiskStatus::Changed: {
+        // Ta sama obca wersja, przy której wybrano już „Zostaw” — bez ponownego pytania.
+        if (m_documents.isDiskVersionDeclined(id))
+            break;
+        beginPrompt(id);
+        const ExternalChangeChoice choice =
+            m_prompts->askExternalChange(this, displayName(id), editor->isModified());
+        const bool stillOpen = findEditor(id) == editor;
+        if (stillOpen) {
+            if (choice == ExternalChangeChoice::Reload)
+                reloadEditor(editor);
+            else
+                m_documents.declineDiskVersion(id);
+        }
+        endPrompt(id);
+        if (!stillOpen)
+            return;
+        break;
+    }
+    }
+    updateTabTitle(editor);
+    if (editor == currentEditor()) {
+        updateWindowTitle();
+        updateCursorStatus();
+    }
+}
+
+void MainWindow::reloadEditor(EditorWidget *editor)
+{
+    const DocumentId id = documentIdOf(editor);
+    const QString path = m_documents.document(id) ? m_documents.document(id)->filePath : QString();
+    const DocumentController::ReloadData data = m_documents.prepareReload(id);
+    if (data.outcome.status != OpenStatus::Opened) {
+        reportOpenFailure(path, data.outcome);
+        m_documents.checkDisk(id); // np. plik zniknął w międzyczasie → ochrona przy zamykaniu
+        return;
+    }
+
+    int line = 0;
+    int index = 0;
+    editor->getCursorPosition(&line, &index);
+    const QString previousText = editor->text();
+    const QsciScintilla::EolMode previousEol = editor->eolMode();
+    const bool previousTabs = editor->indentationsUseTabs();
+
+    editor->setEolMode(data.state.lineEnding == LineEnding::CRLF ? QsciScintilla::EolWindows
+                                                                 : QsciScintilla::EolUnix);
+    editor->setIndentationsUseTabs(data.state.indentWithTabs);
+    if (!editor->loadText(data.outcome.text)) {
+        // Stan dokumentu nie został zmieniony (bez commitReload) — przywracamy bufor.
+        editor->setText(previousText);
+        editor->setEolMode(previousEol);
+        editor->setIndentationsUseTabs(previousTabs);
+        m_prompts->showError(this, tr("Nie można przeładować pliku"),
+                             tr("%1\n\nTreści nie udało się wczytać do edytora bez zmian.")
+                                 .arg(QDir::toNativeSeparators(path)));
+        return;
+    }
+    m_documents.commitReload(id, data);
+    const int lastLine = std::max(editor->lines() - 1, 0);
+    editor->setCursorPosition(std::min(line, lastLine), 0);
+    m_fileWatcher.rewatch(path);
+}
+
 bool MainWindow::resolveUnsavedChanges(EditorWidget *editor)
 {
-    if (!editor || !editor->isModified())
+    if (!editor)
+        return true;
+    // Aktualny stan dysku (np. plik usunięty, a zdarzenie nie dotarło) — tani test.
+    const DocumentId id = documentIdOf(editor);
+    m_documents.checkDisk(id);
+    if (!needsSaving(editor))
         return true;
 
     m_tabs->setCurrentWidget(editor);
-    switch (m_prompts->askUnsavedChanges(this, displayName(documentIdOf(editor)))) {
+    beginPrompt(id);
+    const UnsavedChoice choice = m_prompts->askUnsavedChanges(this, displayName(id));
+    endPrompt(id);
+    switch (choice) {
     case UnsavedChoice::Save:
         return saveEditor(editor, false);
     case UnsavedChoice::Discard:
@@ -472,6 +944,8 @@ bool MainWindow::closeTab(int index)
         return false;
 
     const DocumentId id = documentIdOf(editor);
+    if (const DocumentState *document = m_documents.document(id))
+        m_fileWatcher.unwatch(document->filePath);
     m_tabs->removeTab(m_tabs->indexOf(editor));
     m_documentIds.remove(editor);
     m_documents.close(id);
@@ -494,6 +968,11 @@ EditorWidget *MainWindow::addEditorTab(DocumentId id, const QString &text, LineE
         // Wcięcia w stylu pliku — bez mieszania tabulatorów ze spacjami (D024).
         editor->setIndentationsUseTabs(document->indentWithTabs);
     }
+    applyEditorSettings(editor);
+    // Ctrl+kółko w jednej karcie zmienia powiększenie wszystkich i zapisuje je (D029).
+    connect(editor, &QsciScintillaBase::SCN_ZOOM, this, [this, editor] {
+        setZoom(static_cast<int>(editor->SendScintilla(QsciScintillaBase::SCI_GETZOOM)));
+    });
     // Nowe linie w stylu pliku; istniejące końce linii zostają bez zmian (D016).
     editor->setEolMode(lineEnding == LineEnding::CRLF ? QsciScintilla::EolWindows
                                                       : QsciScintilla::EolUnix);
@@ -509,6 +988,10 @@ EditorWidget *MainWindow::addEditorTab(DocumentId id, const QString &text, LineE
             updateWindowTitle();
     });
     connect(editor, &QsciScintilla::cursorPositionChanged, this, [this, editor] {
+        if (editor == currentEditor())
+            updateCursorStatus();
+    });
+    connect(editor, &QsciScintilla::selectionChanged, this, [this, editor] {
         if (editor == currentEditor())
             updateCursorStatus();
     });
@@ -568,7 +1051,7 @@ void MainWindow::updateTabTitle(EditorWidget *editor)
     const QString name = displayName(id);
 
     QString title = escapeMnemonic(name);
-    if (editor->isModified())
+    if (needsSaving(editor))
         title += QLatin1Char('*');
     m_tabs->setTabText(index, title);
     m_tabs->setTabToolTip(index, document && !document->isUntitled()
@@ -594,7 +1077,8 @@ void MainWindow::updateActions()
     const bool hasEditor = currentEditor() != nullptr;
     for (QAction *action : {m_saveAction, m_saveAsAction, m_closeTabAction, m_undoAction,
                             m_redoAction, m_cutAction, m_copyAction, m_pasteAction,
-                            m_selectAllAction, m_goToLineAction}) {
+                            m_selectAllAction, m_goToLineAction, m_findAction, m_replaceAction,
+                            m_findNextAction, m_findPreviousAction}) {
         action->setEnabled(hasEditor);
     }
     m_saveAllAction->setEnabled(m_tabs->count() > 0);
@@ -613,14 +1097,47 @@ void MainWindow::updateLanguageActions()
 void MainWindow::updateCursorStatus()
 {
     EditorWidget *editor = currentEditor();
-    if (!editor) {
-        m_cursorLabel->clear();
+    const DocumentState *document = editor ? m_documents.document(documentIdOf(editor)) : nullptr;
+    if (!editor || !document) {
+        for (QLabel *label : {m_cursorLabel, m_languageLabel, m_encodingLabel, m_lineEndingLabel})
+            label->clear();
         return;
     }
-    int line = 0;
-    int index = 0;
-    editor->getCursorPosition(&line, &index);
-    m_cursorLabel->setText(tr("Wiersz %1, kolumna %2").arg(line + 1).arg(index + 1));
+
+    // Kolumna w znakach (nie bajtach), tabulator rozwinięty do szerokości tabulacji.
+    const long caret = editor->SendScintilla(QsciScintillaBase::SCI_GETCURRENTPOS);
+    const long line = editor->SendScintilla(QsciScintillaBase::SCI_LINEFROMPOSITION,
+                                            static_cast<unsigned long>(caret));
+    const long column =
+        editor->SendScintilla(QsciScintillaBase::SCI_GETCOLUMN, static_cast<unsigned long>(caret));
+    const long selected = editor->SendScintilla(
+        QsciScintillaBase::SCI_COUNTCHARACTERS,
+        static_cast<unsigned long>(editor->SendScintilla(QsciScintillaBase::SCI_GETSELECTIONSTART)),
+        editor->SendScintilla(QsciScintillaBase::SCI_GETSELECTIONEND));
+    QString position = tr("Wiersz %1, kolumna %2").arg(line + 1).arg(column + 1);
+    if (selected > 0)
+        position += tr(", zaznaczono %1").arg(selected);
+    m_cursorLabel->setText(position);
+
+    m_languageLabel->setText(LanguageRegistry::displayName(editor->language()));
+    m_encodingLabel->setText(document->hasBom ? tr("UTF-8 z BOM") : QStringLiteral("UTF-8"));
+    switch (document->lineEnding) {
+    case LineEnding::CRLF:
+        m_lineEndingLabel->setText(QStringLiteral("CRLF"));
+        break;
+    case LineEnding::Mixed:
+        m_lineEndingLabel->setText(tr("Mieszane"));
+        break;
+    case LineEnding::LF:
+        m_lineEndingLabel->setText(QStringLiteral("LF"));
+        break;
+    case LineEnding::None:
+        // Brak końców linii w pliku — nowe linie wpisywane wg trybu edytora.
+        m_lineEndingLabel->setText(editor->eolMode() == QsciScintilla::EolWindows
+                                       ? QStringLiteral("CRLF")
+                                       : QStringLiteral("LF"));
+        break;
+    }
 }
 
 void MainWindow::reportOpenFailure(const QString &path, const OpenOutcome &outcome)
@@ -648,6 +1165,9 @@ void MainWindow::reportSaveFailure(const QString &name, const SaveOutcome &outco
 {
     QString reason;
     switch (outcome.failure) {
+    case SaveFailure::DiskChanged:
+        reason = tr("Plik na dysku zmienił się od ostatniego wczytania lub zapisu.");
+        break;
     case SaveFailure::OpenInAnotherDocument:
         reason = tr("Ten plik jest już otwarty w innej karcie. "
                     "Zamknij tamtą kartę albo wybierz inną nazwę.");

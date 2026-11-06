@@ -2,13 +2,19 @@
 
 #include "controllers/DocumentController.h"
 #include "domain/DocumentState.h"
+#include "domain/SearchOptions.h"
 #include "editor/ThemePalette.h"
+#include "services/FileWatchService.h"
+#include "services/SettingsService.h"
 #include "ui/UserPrompts.h"
 
 #include <QHash>
 #include <QList>
 #include <QMainWindow>
+#include <QSet>
+#include <QSettings> // pełny typ: domyślny argument std::unique_ptr<QSettings>
 
+#include <functional>
 #include <memory>
 
 class QAction;
@@ -20,6 +26,7 @@ class QTabWidget;
 namespace cynamoncode {
 
 class EditorWidget;
+class FindReplaceDialog;
 
 // Główne okno: karty edytorów, menu i pasek stanu. Operacje na plikach
 // deleguje do DocumentController; nie czyta bajtów ani nie dekoduje tekstu.
@@ -28,7 +35,9 @@ class MainWindow final : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(std::unique_ptr<UserPrompts> prompts = {}, QWidget *parent = nullptr);
+    // Bez `settings` ustawienia działają tylko w pamięci (testy) — nic nie trafia na dysk (D029).
+    explicit MainWindow(std::unique_ptr<UserPrompts> prompts = {},
+                        std::unique_ptr<QSettings> settings = {}, QWidget *parent = nullptr);
     ~MainWindow() override;
 
     // Otwiera plik w nowej karcie albo aktywuje kartę, w której już jest otwarty.
@@ -42,6 +51,15 @@ public:
     void setTheme(ThemeId theme);
     ThemeId theme() const { return m_theme; }
 
+    const EditorSettings &editorSettings() const { return m_editorSettings; }
+    void setZoom(int zoom);
+
+    // Wyszukiwanie w bieżącej karcie (D028); wynik także w oknie i pasku stanu.
+    bool findInCurrent(const SearchOptions &options, bool forward);
+    bool replaceInCurrent(const SearchOptions &options, const QString &replacement);
+    int replaceAllInCurrent(const SearchOptions &options, const QString &replacement);
+    FindReplaceDialog *findDialog();
+
 protected:
     void closeEvent(QCloseEvent *event) override;
 
@@ -49,6 +67,15 @@ private:
     void createActions();
     void createMenus();
     void createViewAndLanguageMenus();
+    void createSearchActions();
+    void createSettingsActions(QMenu *viewMenu);
+    void applyEditorSettings(EditorWidget *editor) const;
+    void changeSettings(const std::function<void(EditorSettings &)> &change);
+    QFont editorFont() const;
+    void chooseFont();
+    void openFindDialog(bool replace);
+    void findFromMenu(bool forward);
+    void reportSearchStatus(const QString &message);
 
     void newDocument();
     void openFilesFromDialog();
@@ -61,8 +88,14 @@ private:
     void handleMixedLineEndings(EditorWidget *editor);
     void syncEditorLanguage(EditorWidget *editor);
 
-    bool saveEditor(EditorWidget *editor, bool askForPath);
+    bool saveEditor(EditorWidget *editor, bool askForPath, bool suggestCopyName = false);
+    void beginPrompt(DocumentId id);
+    void endPrompt(DocumentId id);
+    bool needsSaving(const EditorWidget *editor) const;
     bool resolveUnsavedChanges(EditorWidget *editor);
+    void onWatchedFileChanged(const QString &path);
+    void handleDiskChange(EditorWidget *editor);
+    void reloadEditor(EditorWidget *editor);
     bool closeTab(int index);
 
     EditorWidget *addEditorTab(DocumentId id, const QString &text, LineEnding lineEnding);
@@ -82,11 +115,22 @@ private:
     static QString fileErrorText(FileError error, const QString &systemMessage);
 
     std::unique_ptr<UserPrompts> m_prompts;
+    std::unique_ptr<QSettings> m_settingsStore;
+    std::unique_ptr<SettingsService> m_settingsService;
+    EditorSettings m_editorSettings;
     DocumentController m_documents;
     QHash<const EditorWidget *, DocumentId> m_documentIds;
+    FileWatchService m_fileWatcher;
+    // Otwarte pytania dotyczące dokumentu (zagnieżdżone pętle zdarzeń dialogów)
+    // i zdarzenia dysku odłożone do ich zamknięcia.
+    QHash<DocumentId, int> m_promptDepth;
+    QSet<DocumentId> m_pendingDiskEvents;
 
     QTabWidget *m_tabs = nullptr;
     QLabel *m_cursorLabel = nullptr;
+    QLabel *m_languageLabel = nullptr;
+    QLabel *m_encodingLabel = nullptr;
+    QLabel *m_lineEndingLabel = nullptr;
 
     QAction *m_newAction = nullptr;
     QAction *m_openAction = nullptr;
@@ -102,6 +146,19 @@ private:
     QAction *m_pasteAction = nullptr;
     QAction *m_selectAllAction = nullptr;
     QAction *m_goToLineAction = nullptr;
+    QAction *m_findAction = nullptr;
+    QAction *m_replaceAction = nullptr;
+    QAction *m_findNextAction = nullptr;
+    QAction *m_findPreviousAction = nullptr;
+    FindReplaceDialog *m_findDialog = nullptr;
+    QAction *m_wordWrapAction = nullptr;
+    QAction *m_lineNumbersAction = nullptr;
+    QAction *m_whitespaceAction = nullptr;
+    QAction *m_lineEndingsAction = nullptr;
+    QAction *m_zoomInAction = nullptr;
+    QAction *m_zoomOutAction = nullptr;
+    QAction *m_zoomResetAction = nullptr;
+    QAction *m_fontAction = nullptr;
     QAction *m_lightThemeAction = nullptr;
     QAction *m_darkThemeAction = nullptr;
     QActionGroup *m_languageGroup = nullptr;

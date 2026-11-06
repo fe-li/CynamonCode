@@ -1,11 +1,13 @@
 // Integracja okna głównego: karty, otwieranie i zapis, ochrona niezapisanych
 // zmian (TESTY.md T03–T08, T19; bramka E1). Dialogi zastępuje ScriptedPrompts.
 
+#include "ScriptedPrompts.h"
 #include "editor/EditorWidget.h"
 #include "ui/MainWindow.h"
 #include "ui/UserPrompts.h"
 
 #include <QAction>
+#include <QLabel>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -22,42 +24,7 @@ using namespace cynamoncode;
 
 namespace {
 
-class ScriptedPrompts final : public UserPrompts
-{
-public:
-    QList<UnsavedChoice> unsavedAnswers; // brak odpowiedzi = Anuluj
-    QStringList savePaths;               // brak ścieżki = anulowanie dialogu
-    QStringList openPaths;
-    std::optional<int> lineNumber;
-
-    int unsavedQuestions = 0;
-    QStringList errors;
-
-    UnsavedChoice askUnsavedChanges(QWidget *, const QString &) override
-    {
-        ++unsavedQuestions;
-        return unsavedAnswers.isEmpty() ? UnsavedChoice::Cancel : unsavedAnswers.takeFirst();
-    }
-    QStringList askOpenPaths(QWidget *) override { return std::exchange(openPaths, {}); }
-    QString lastSuggestedPath;
-    QString askSavePath(QWidget *, const QString &suggestedPath) override
-    {
-        lastSuggestedPath = suggestedPath;
-        return savePaths.isEmpty() ? QString() : savePaths.takeFirst();
-    }
-    std::optional<int> askLineNumber(QWidget *, int, int) override { return lineNumber; }
-    MixedLineEndingChoice mixedAnswer = MixedLineEndingChoice::Keep;
-    int mixedQuestions = 0;
-    MixedLineEndingChoice askMixedLineEndings(QWidget *, const QString &) override
-    {
-        ++mixedQuestions;
-        return mixedAnswer;
-    }
-    void showError(QWidget *, const QString &, const QString &message) override
-    {
-        errors << message;
-    }
-};
+using testing::ScriptedPrompts;
 
 QByteArray readBytes(const QString &path)
 {
@@ -151,6 +118,7 @@ private slots:
     void indentationStyleFollowsFile();
     void saveAsSuggestsExtensionForLanguage();
     void savedHtmlWithoutDotIsColoredAfterReopen();
+    void statusBarShowsDocumentInfo();
 };
 
 void TestTabs::startsWithOneUntitledTab()
@@ -589,6 +557,40 @@ void TestTabs::savedHtmlWithoutDotIsColoredAfterReopen()
     QVERIFY(f.window->openFile(path));
     QCOMPARE(int(f.window->currentEditor()->language()), int(LanguageId::Html));
     QVERIFY(f.window->currentEditor()->lexer() != nullptr);
+}
+
+void TestTabs::statusBarShowsDocumentInfo()
+{
+    QTemporaryDir dir;
+    const QString path = dir.filePath(QStringLiteral("skrypt.py"));
+    QVERIFY(writeBytes(path, QByteArray("\xEF\xBB\xBF", 3) + "\tżółw = 1\r\nx = 2\r\n"));
+
+    Fixture f;
+    const auto label = [&f](const char *name) {
+        return f.window->findChild<QLabel *>(QLatin1String(name))->text();
+    };
+    // Nowy dokument.
+    QCOMPARE(label("languageLabel"), QStringLiteral("Zwykły tekst"));
+    QCOMPARE(label("encodingLabel"), QStringLiteral("UTF-8"));
+    QCOMPARE(label("lineEndingLabel"), QStringLiteral("LF"));
+    QCOMPARE(label("cursorLabel"), QStringLiteral("Wiersz 1, kolumna 1"));
+
+    QVERIFY(f.window->openFile(path));
+    QCOMPARE(label("languageLabel"), QStringLiteral("Python"));
+    QCOMPARE(label("encodingLabel"), QStringLiteral("UTF-8 z BOM"));
+    QCOMPARE(label("lineEndingLabel"), QStringLiteral("CRLF"));
+
+    // Kolumna w znakach, tabulator = 4 kolumny: "\tżółw = 1" (9 znaków) → koniec w kolumnie 13.
+    EditorWidget *editor = f.window->currentEditor();
+    editor->setCursorPosition(0, 0);
+    editor->SendScintilla(QsciScintillaBase::SCI_LINEEND);
+    QCOMPARE(label("cursorLabel"), QStringLiteral("Wiersz 1, kolumna 13"));
+    editor->SendScintilla(QsciScintillaBase::SCI_HOME);
+    editor->SendScintilla(QsciScintillaBase::SCI_LINEENDEXTEND);
+    QCOMPARE(label("cursorLabel"), QStringLiteral("Wiersz 1, kolumna 13, zaznaczono 9"));
+
+    trigger(*f.window, "actionLanguage_plain");
+    QCOMPARE(label("languageLabel"), QStringLiteral("Zwykły tekst"));
 }
 
 QTEST_MAIN(TestTabs)

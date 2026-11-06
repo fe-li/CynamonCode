@@ -36,7 +36,14 @@ enum class SaveFailure {
     UnknownDocument,
     NoPath,                // dokument bez pliku — potrzebne „Zapisz jako”
     OpenInAnotherDocument, // docelowy plik jest otwarty w innej karcie
+    DiskChanged,           // plik na dysku zmienił się od wczytania/zapisu (D027)
     File,                  // szczegóły w fileError / systemMessage
+};
+
+enum class DiskStatus {
+    Unchanged,
+    Changed, // inna treść niż przy ostatnim wczytaniu/zapisie
+    Missing, // plik usunięty lub przeniesiony
 };
 
 struct SaveOutcome
@@ -55,9 +62,33 @@ class DocumentController
 public:
     DocumentId createNew();
     OpenOutcome open(const QString &path);
-    SaveOutcome save(DocumentId id, const QString &text);
+    // Bez `overwriteDiskChanges` zapis odmawia (DiskChanged), gdy plik na dysku
+    // zmienił się od ostatniego wczytania lub zapisu (D027).
+    SaveOutcome save(DocumentId id, const QString &text, bool overwriteDiskChanges = false);
     SaveOutcome saveAs(DocumentId id, const QString &path, const QString &text);
     void close(DocumentId id);
+
+    // Porównanie pliku na dysku z ostatnim stanem (D030); sam `touch` = Unchanged.
+    // `trustMetadata` pozwala uznać zgodny rozmiar i mtime za brak zmian (tani
+    // test np. przy zamykaniu); zapis i zdarzenia obserwatora zawsze liczą SHA-256.
+    DiskStatus checkDisk(DocumentId id, bool trustMetadata = true);
+
+    // Użytkownik wybrał „Zostaw” dla bieżącej wersji na dysku: kolejne zdarzenia
+    // z tą samą treścią nie pytają ponownie (zapis nadal zgłosi konflikt, D027).
+    void declineDiskVersion(DocumentId id);
+    bool isDiskVersionDeclined(DocumentId id) const;
+
+    // Ponowne wczytanie w dwóch krokach: prepareReload niczego nie zmienia,
+    // commitReload zapisuje nowy stan dopiero po udanym wczytaniu do edytora.
+    struct ReloadData
+    {
+        OpenOutcome outcome;
+        DocumentState state; // hasBom, lineEnding, indentWithTabs, disk
+    };
+    ReloadData prepareReload(DocumentId id) const;
+    void commitReload(DocumentId id, const ReloadData &data);
+    // prepareReload + commitReload (bez edytora).
+    OpenOutcome reload(DocumentId id);
 
     // Ręczny wybór języka dla dokumentu (D023).
     void setLanguage(DocumentId id, LanguageId language);

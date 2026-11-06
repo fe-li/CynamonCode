@@ -37,16 +37,25 @@ add_library(cynamoncode_core STATIC
     src/domain/DocumentState.h
     src/domain/LanguageId.h
     src/domain/LineEnding.h
+    src/domain/SearchOptions.h
     src/services/EncodingService.cpp
     src/services/EncodingService.h
     src/services/FileService.cpp
     src/services/FileService.h
+    src/services/FileWatchService.cpp
+    src/services/FileWatchService.h
     src/services/Indentation.cpp
     src/services/Indentation.h
     src/services/DocumentManager.cpp
     src/services/DocumentManager.h
     src/services/LanguageRegistry.cpp
     src/services/LanguageRegistry.h
+    src/services/SearchService.cpp
+    src/services/SearchService.h
+    src/services/SettingsService.cpp
+    src/services/SettingsService.h
+    src/services/TextPositions.cpp
+    src/services/TextPositions.h
     src/controllers/DocumentController.cpp
     src/controllers/DocumentController.h)
 target_include_directories(cynamoncode_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -62,6 +71,8 @@ add_library(cynamoncode_ui STATIC
     src/editor/SyntaxHighlighter.h
     src/editor/ThemePalette.cpp
     src/editor/ThemePalette.h
+    src/ui/FindReplaceDialog.cpp
+    src/ui/FindReplaceDialog.h
     src/ui/MainWindow.cpp
     src/ui/MainWindow.h
     src/ui/UserPrompts.cpp

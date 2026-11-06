@@ -4,6 +4,20 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/). Wersj
 
 ## [Niewydane]
 
+### Dodano (E3, 2026-11-06)
+
+- Okno „Znajdź i zamień” (Ctrl+F, Ctrl+H, F3, Shift+F3): wielkość liter, całe wyrazy, wyrażenia regularne z grupami w zamianie, zawijanie; „Zamień wszystkie” cofa się jednym Ctrl+Z.
+- Pasek stanu: wiersz i kolumna, liczba zaznaczonych znaków, język, kodowanie, końce linii.
+- Ustawienia zapamiętywane w `~/.config/CynamonCode/cynamoncode.conf`: czcionka, motyw, zawijanie wierszy, numery wierszy, białe znaki, końce linii, powiększenie, rozmiar i położenie okna.
+- Wykrywanie zmian otwartych plików przez inne programy: pytanie o przeładowanie lub zachowanie zmian, informacja o usuniętym pliku, ostrzeżenie przed nadpisaniem cudzej zmiany przy zapisie.
+- Testy: `tst_search`, `tst_settings`, `tst_disk_changes`, `tst_find_replace`, `tst_external_changes`, `tst_settings_window`; wspólne `tests/gui/ScriptedPrompts.h`.
+- Decyzje D026–D030.
+
+### Weryfikacja E3 (2026-11-06)
+
+- Przegląd kodu: poprawione wykrywanie zmian tej samej długości w tej samej chwili, zdarzenia dysku w trakcie otwartych pytań, obserwacja odtworzonego pliku, zagłodzenie zgłoszeń przez często zmieniany plik oraz drobne przypadki brzegowe wyszukiwania i przeładowania.
+- Linux Mint 22.3: build od zera bez ostrzeżeń, `ctest` 17/17 PASS, testy GUI PASS offscreen i na X11, testy obserwacji plików stabilne w 20 przebiegach. Ręczna kontrola (użytkownik): OK.
+
 ### Poprawiono (2026-11-06)
 
 - Plik HTML zapisany bez kropki w nazwie (np. „Nowy 1html”) otwierał się bez kolorowania: pliki bez rozszerzenia są teraz rozpoznawane po początku treści (`<!DOCTYPE html>`, `<html`, `<?xml`, `<?php`), a „Zapisz jako” nowego dokumentu podpowiada rozszerzenie zgodne z językiem (D025).
