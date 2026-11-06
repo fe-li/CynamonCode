@@ -10,6 +10,11 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/). Wersj
 - Ikona aplikacji z logo CynamonCode (okno, pasek zadań) w rozmiarach 16–512 px.
 - Wersja programu: 0.1.0.
 - Test: `tst_about`.
+- Logo źródłowe w `resources/icons/cynamoncode-zrodlo.png` i skrypt `scripts/generate-icons.py` odtwarzający ikony (D033).
+
+### Zmieniono (2026-11-06)
+
+- Konfigurowalne skróty klawiszowe przeniesione z E3 do E5 (D032).
 
 ### Dodano (E3, 2026-11-06)
 

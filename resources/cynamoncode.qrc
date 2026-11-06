@@ -1,6 +1,6 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
-    <!-- Ikony wygenerowane z autorskiego logo CynamonCode (Ikona CynamonCode.png). -->
+    <!-- Ikony z logo źródłowego icons/cynamoncode-zrodlo.png (scripts/generate-icons.py, D033). -->
     <qresource prefix="/icons">
         <file alias="cynamoncode-16.png">icons/cynamoncode-16.png</file>
         <file alias="cynamoncode-24.png">icons/cynamoncode-24.png</file>

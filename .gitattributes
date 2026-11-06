@@ -4,3 +4,6 @@
 
 # Fixture'y testowe (CRLF, mixed, BOM, niepoprawne UTF-8) muszą zachować bajty 1:1.
 tests/fixtures/** -text
+
+# Grafika — zawsze binarnie, bez konwersji końców linii.
+*.png binary
