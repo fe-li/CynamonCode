@@ -22,8 +22,15 @@ LanguageId fromFileName(const QString &filePath);
 // Pierwsza linia z „#!”; Plain, jeśli nie rozpoznano.
 LanguageId fromShebang(const QString &firstLine);
 
-// Kolejność z D023 (bez ręcznego wyboru, który przechowuje dokument):
-// rozszerzenie / nazwa pliku → shebang → zwykły tekst.
+// Jednoznaczny początek dokumentu: <!DOCTYPE html>, <html, <?xml, <?php (D025).
+LanguageId fromFirstLine(const QString &firstLine);
+
+// Proponowane rozszerzenie (bez kropki) przy zapisie nowego dokumentu; puste dla zwykłego tekstu.
+QString defaultExtension(LanguageId language);
+
+// Kolejność z D023/D025 (bez ręcznego wyboru, który przechowuje dokument):
+// rozszerzenie / nazwa pliku → shebang → (tylko plik bez rozszerzenia) początek
+// treści → zwykły tekst.
 LanguageId detect(const QString &filePath, const QString &firstLine);
 
 } // namespace cynamoncode::LanguageRegistry

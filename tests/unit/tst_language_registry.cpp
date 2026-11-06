@@ -19,7 +19,54 @@ private slots:
     void fileNameBeatsShebang();
     void unknownIsPlainText();
     void everyLanguageHasKeyAndName();
+    void detectsByFirstLineWithoutExtension_data();
+    void detectsByFirstLineWithoutExtension();
+    void defaultExtensionRoundTrips();
 };
+
+void TestLanguageRegistry::detectsByFirstLineWithoutExtension_data()
+{
+    QTest::addColumn<QString>("path");
+    QTest::addColumn<QString>("line");
+    QTest::addColumn<int>("expected");
+    const auto row = [](const char *name, const char *path, const char *line,
+                        LanguageId language) {
+        QTest::newRow(name) << QString::fromUtf8(path) << QString::fromUtf8(line)
+                            << int(language);
+    };
+    // Zgłoszony przypadek: „Nowy 1” + „html” bez kropki.
+    row("Nowy 1html", "/home/kamil/Nowy 1html", "<html>", LanguageId::Html);
+    row("doctype", "strona", "<!DOCTYPE html>", LanguageId::Html);
+    row("wielkie litery i spacje", "strona", "   <HTML lang=\"pl\">", LanguageId::Html);
+    row("xml", "dane", "<?xml version=\"1.0\"?>", LanguageId::Xml);
+    row("php", "skrypt", "<?php", LanguageId::Php);
+    row("zwykły tekst", "notatka", "<to nie html>", LanguageId::Plain);
+    // Rozszerzenie rozstrzyga: plik .txt z HTML-em pozostaje tekstem.
+    row("txt z html", "notatki.txt", "<html>", LanguageId::Plain);
+    row("py z html", "a.py", "<html>", LanguageId::Python);
+}
+
+void TestLanguageRegistry::detectsByFirstLineWithoutExtension()
+{
+    QFETCH(QString, path);
+    QFETCH(QString, line);
+    QFETCH(int, expected);
+    QCOMPARE(int(LanguageRegistry::detect(path, line)), expected);
+}
+
+void TestLanguageRegistry::defaultExtensionRoundTrips()
+{
+    for (const LanguageId language : LanguageRegistry::all()) {
+        const QString extension = LanguageRegistry::defaultExtension(language);
+        if (language == LanguageId::Plain) {
+            QVERIFY(extension.isEmpty());
+            continue;
+        }
+        QVERIFY2(!extension.isEmpty(), qPrintable(LanguageRegistry::key(language)));
+        QCOMPARE(int(LanguageRegistry::fromFileName(QStringLiteral("Nowy 1.") + extension)),
+                 int(language));
+    }
+}
 
 void TestLanguageRegistry::detectsByFileName_data()
 {

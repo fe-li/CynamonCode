@@ -165,12 +165,64 @@ LanguageId fromShebang(const QString &firstLine)
     return LanguageId::Plain;
 }
 
+LanguageId fromFirstLine(const QString &firstLine)
+{
+    const QString start = firstLine.trimmed().toLower();
+    if (start.startsWith(QLatin1String("<!doctype html")) || start.startsWith(QLatin1String("<html")))
+        return LanguageId::Html;
+    if (start.startsWith(QLatin1String("<?xml")))
+        return LanguageId::Xml;
+    if (start.startsWith(QLatin1String("<?php")))
+        return LanguageId::Php;
+    return LanguageId::Plain;
+}
+
+QString defaultExtension(LanguageId language)
+{
+    switch (language) {
+    case LanguageId::Plain:
+        return QString();
+    case LanguageId::Cpp:
+        return QStringLiteral("cpp");
+    case LanguageId::Python:
+        return QStringLiteral("py");
+    case LanguageId::Java:
+        return QStringLiteral("java");
+    case LanguageId::JavaScript:
+        return QStringLiteral("js");
+    case LanguageId::Html:
+        return QStringLiteral("html");
+    case LanguageId::Css:
+        return QStringLiteral("css");
+    case LanguageId::Php:
+        return QStringLiteral("php");
+    case LanguageId::Sql:
+        return QStringLiteral("sql");
+    case LanguageId::Json:
+        return QStringLiteral("json");
+    case LanguageId::Xml:
+        return QStringLiteral("xml");
+    case LanguageId::Bash:
+        return QStringLiteral("sh");
+    }
+    return QString();
+}
+
 LanguageId detect(const QString &filePath, const QString &firstLine)
 {
     const LanguageId byName = fromFileName(filePath);
     if (byName != LanguageId::Plain)
         return byName;
-    return fromShebang(firstLine);
+    const LanguageId byShebang = fromShebang(firstLine);
+    if (byShebang != LanguageId::Plain)
+        return byShebang;
+
+    // Treść rozstrzyga tylko przy braku rozszerzenia — „notatki.txt” z HTML-em
+    // pozostaje zwykłym tekstem.
+    const QString name = QFileInfo(filePath).fileName();
+    if (name.lastIndexOf(QLatin1Char('.')) <= 0)
+        return fromFirstLine(firstLine);
+    return LanguageId::Plain;
 }
 
 } // namespace cynamoncode::LanguageRegistry

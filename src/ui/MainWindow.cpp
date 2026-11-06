@@ -418,8 +418,13 @@ bool MainWindow::saveEditor(EditorWidget *editor, bool askForPath)
     const QString name = displayName(id);
     SaveOutcome outcome;
     if (askForPath || document->isUntitled()) {
-        const QString suggested =
-            document->isUntitled() ? QDir::home().filePath(name) : document->filePath;
+        // Nowy dokument: rozszerzenie zgodne z językiem, np. „Nowy 1.html” (D025).
+        QString suggested = document->filePath;
+        if (document->isUntitled()) {
+            const QString extension = LanguageRegistry::defaultExtension(editor->language());
+            suggested = QDir::home().filePath(
+                extension.isEmpty() ? name : name + QLatin1Char('.') + extension);
+        }
         const QString path = m_prompts->askSavePath(this, suggested);
         if (path.isEmpty())
             return false;

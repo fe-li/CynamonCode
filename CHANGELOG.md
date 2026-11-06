@@ -4,6 +4,10 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/). Wersj
 
 ## [Niewydane]
 
+### Poprawiono (2026-11-06)
+
+- Plik HTML zapisany bez kropki w nazwie (np. „Nowy 1html”) otwierał się bez kolorowania: pliki bez rozszerzenia są teraz rozpoznawane po początku treści (`<!DOCTYPE html>`, `<html`, `<?xml`, `<?php`), a „Zapisz jako” nowego dokumentu podpowiada rozszerzenie zgodne z językiem (D025).
+
 ### Dodano (E2, 2026-11-06)
 
 - Kolorowanie składni dla 12 języków (zwykły tekst, C/C++, Python, Java, JavaScript, HTML, CSS, PHP, SQL, JSON, XML, Bash) przez lexery QScintilla — bez jakiejkolwiek analizy poprawności.

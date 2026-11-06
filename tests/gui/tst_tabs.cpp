@@ -39,8 +39,10 @@ public:
         return unsavedAnswers.isEmpty() ? UnsavedChoice::Cancel : unsavedAnswers.takeFirst();
     }
     QStringList askOpenPaths(QWidget *) override { return std::exchange(openPaths, {}); }
-    QString askSavePath(QWidget *, const QString &) override
+    QString lastSuggestedPath;
+    QString askSavePath(QWidget *, const QString &suggestedPath) override
     {
+        lastSuggestedPath = suggestedPath;
         return savePaths.isEmpty() ? QString() : savePaths.takeFirst();
     }
     std::optional<int> askLineNumber(QWidget *, int, int) override { return lineNumber; }
@@ -147,6 +149,8 @@ private slots:
     void mixedLineEndingsCanBeUnified();
     void themeAppliesToAllTabs();
     void indentationStyleFollowsFile();
+    void saveAsSuggestsExtensionForLanguage();
+    void savedHtmlWithoutDotIsColoredAfterReopen();
 };
 
 void TestTabs::startsWithOneUntitledTab()
@@ -549,6 +553,42 @@ void TestTabs::indentationStyleFollowsFile()
     QVERIFY(f.window->currentEditor()->autoIndent());
     QVERIFY(f.window->openFile(spaces));
     QVERIFY(!f.window->currentEditor()->indentationsUseTabs());
+}
+
+void TestTabs::saveAsSuggestsExtensionForLanguage()
+{
+    Fixture f;
+    edit(f.window->currentEditor(), QStringLiteral("<html></html>"));
+    trigger(*f.window, "actionLanguage_html");
+    trigger(*f.window, "actionSave"); // brak ścieżki w skrypcie = anulowanie dialogu
+    QVERIFY2(f.prompts->lastSuggestedPath.endsWith(QStringLiteral("/Nowy 1.html")),
+             qPrintable(f.prompts->lastSuggestedPath));
+
+    trigger(*f.window, "actionNew"); // zwykły tekst — bez rozszerzenia
+    edit(f.window->currentEditor(), QStringLiteral("tekst"));
+    trigger(*f.window, "actionSave");
+    QVERIFY2(f.prompts->lastSuggestedPath.endsWith(QStringLiteral("/Nowy 2")),
+             qPrintable(f.prompts->lastSuggestedPath));
+}
+
+void TestTabs::savedHtmlWithoutDotIsColoredAfterReopen()
+{
+    // Odtworzenie zgłoszenia: zapis jako „Nowy 1html” (bez kropki) i ponowne otwarcie.
+    QTemporaryDir dir;
+    const QString path = dir.filePath(QStringLiteral("Nowy 1html"));
+
+    Fixture f;
+    edit(f.window->currentEditor(), QStringLiteral("<html>\n    <body></body>\n</html>\n"));
+    trigger(*f.window, "actionLanguage_html");
+    f.prompts->savePaths = {path};
+    trigger(*f.window, "actionSave");
+    QVERIFY(f.prompts->errors.isEmpty());
+    trigger(*f.window, "actionCloseTab");
+    QCOMPARE(f.window->documentCount(), 0);
+
+    QVERIFY(f.window->openFile(path));
+    QCOMPARE(int(f.window->currentEditor()->language()), int(LanguageId::Html));
+    QVERIFY(f.window->currentEditor()->lexer() != nullptr);
 }
 
 QTEST_MAIN(TestTabs)
