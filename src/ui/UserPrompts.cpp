@@ -4,6 +4,7 @@
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QMessageBox>
+#include <QPushButton>
 
 namespace cynamoncode {
 
@@ -51,6 +52,29 @@ std::optional<int> DialogPrompts::askLineNumber(QWidget *parent, int currentLine
     if (!accepted)
         return std::nullopt;
     return line;
+}
+
+MixedLineEndingChoice DialogPrompts::askMixedLineEndings(QWidget *parent,
+                                                        const QString &documentName)
+{
+    QMessageBox box(QMessageBox::Information, tr("Mieszane końce linii"),
+                    tr("Plik „%1” zawiera różne końce linii (LF i CRLF).\n\n"
+                       "Ujednolicenie oznaczy dokument jako zmieniony — plik na dysku "
+                       "zmieni się dopiero po zapisaniu.")
+                        .arg(documentName),
+                    QMessageBox::NoButton, parent);
+    QPushButton *keep = box.addButton(tr("Zachowaj bez zmian"), QMessageBox::RejectRole);
+    QPushButton *toLf = box.addButton(tr("Ujednolić do LF"), QMessageBox::AcceptRole);
+    QPushButton *toCrLf = box.addButton(tr("Ujednolić do CRLF"), QMessageBox::AcceptRole);
+    box.setDefaultButton(keep);
+    box.setEscapeButton(keep);
+    box.exec();
+
+    if (box.clickedButton() == toLf)
+        return MixedLineEndingChoice::ConvertToLf;
+    if (box.clickedButton() == toCrLf)
+        return MixedLineEndingChoice::ConvertToCrLf;
+    return MixedLineEndingChoice::Keep;
 }
 
 void DialogPrompts::showError(QWidget *parent, const QString &title, const QString &message)

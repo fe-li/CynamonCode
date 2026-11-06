@@ -44,6 +44,9 @@ private slots:
     void refusesInvalidUtf8AndBinary_data();
     void refusesInvalidUtf8AndBinary();
     void closedDocumentCanBeOpenedAgain();
+    void symlinkAndTargetAreOneDocument();
+    void languageIsDetectedOnOpenAndSaveAs();
+    void manualLanguageIsKept();
 };
 
 void TestDocumentController::openingSameFileTwiceReturnsExistingDocument()
@@ -192,6 +195,53 @@ void TestDocumentController::closedDocumentCanBeOpenedAgain()
     const OpenOutcome again = controller.open(path);
     QVERIFY(again.status == OpenStatus::Opened);
     QVERIFY(again.id != first.id);
+}
+
+void TestDocumentController::symlinkAndTargetAreOneDocument()
+{
+    QTemporaryDir dir;
+    const QString target = dir.filePath(QStringLiteral("cel.txt"));
+    const QString link = dir.filePath(QStringLiteral("dowiazanie.txt"));
+    QVERIFY(writeBytes(target, "treść"));
+    QVERIFY(QFile::link(target, link));
+
+    DocumentController controller;
+    const OpenOutcome viaLink = controller.open(link);
+    QVERIFY(viaLink.status == OpenStatus::Opened);
+    // Ścieżka użytkownika zostaje (dowiązanie), tożsamość — po pliku docelowym.
+    QCOMPARE(controller.document(viaLink.id)->filePath, QFileInfo(link).absoluteFilePath());
+
+    const OpenOutcome viaTarget = controller.open(target);
+    QVERIFY(viaTarget.status == OpenStatus::AlreadyOpen);
+    QCOMPARE(viaTarget.id, viaLink.id);
+}
+
+void TestDocumentController::languageIsDetectedOnOpenAndSaveAs()
+{
+    QTemporaryDir dir;
+    const QString script = dir.filePath(QStringLiteral("narzedzie"));
+    QVERIFY(writeBytes(script, "#!/usr/bin/env python3\r\nprint(1)\r\n"));
+
+    DocumentController controller;
+    const OpenOutcome opened = controller.open(script);
+    QCOMPARE(int(controller.document(opened.id)->language), int(LanguageId::Python));
+
+    const DocumentId id = controller.createNew();
+    QCOMPARE(int(controller.document(id)->language), int(LanguageId::Plain));
+    QVERIFY(controller.saveAs(id, dir.filePath(QStringLiteral("styl.css")), QStringLiteral("a{}"))
+                .ok());
+    QCOMPARE(int(controller.document(id)->language), int(LanguageId::Css));
+}
+
+void TestDocumentController::manualLanguageIsKept()
+{
+    QTemporaryDir dir;
+    DocumentController controller;
+    const DocumentId id = controller.createNew();
+    controller.setLanguage(id, LanguageId::Sql);
+    QVERIFY(controller.saveAs(id, dir.filePath(QStringLiteral("x.py")), QStringLiteral("select 1"))
+                .ok());
+    QCOMPARE(int(controller.document(id)->language), int(LanguageId::Sql));
 }
 
 QTEST_GUILESS_MAIN(TestDocumentController)

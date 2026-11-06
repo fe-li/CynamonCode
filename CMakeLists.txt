@@ -35,13 +35,18 @@ endif()
 # Logika bez GUI: model dokumentu, pliki, kodowanie, przypadki użycia (tylko Qt6::Core).
 add_library(cynamoncode_core STATIC
     src/domain/DocumentState.h
+    src/domain/LanguageId.h
     src/domain/LineEnding.h
     src/services/EncodingService.cpp
     src/services/EncodingService.h
     src/services/FileService.cpp
     src/services/FileService.h
+    src/services/Indentation.cpp
+    src/services/Indentation.h
     src/services/DocumentManager.cpp
     src/services/DocumentManager.h
+    src/services/LanguageRegistry.cpp
+    src/services/LanguageRegistry.h
     src/controllers/DocumentController.cpp
     src/controllers/DocumentController.h)
 target_include_directories(cynamoncode_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -53,6 +58,10 @@ target_link_libraries(cynamoncode_core
 add_library(cynamoncode_ui STATIC
     src/editor/EditorWidget.cpp
     src/editor/EditorWidget.h
+    src/editor/SyntaxHighlighter.cpp
+    src/editor/SyntaxHighlighter.h
+    src/editor/ThemePalette.cpp
+    src/editor/ThemePalette.h
     src/ui/MainWindow.cpp
     src/ui/MainWindow.h
     src/ui/UserPrompts.cpp

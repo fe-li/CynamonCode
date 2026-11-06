@@ -1,6 +1,16 @@
 #include "editor/EditorWidget.h"
 
+#include "editor/SyntaxHighlighter.h"
+#include "services/Indentation.h"
+
+#include <Qsci/qscilexer.h>
+#include <Qsci/qscilexerhtml.h>
+
 #include <QFontDatabase>
+#include <QKeyEvent>
+#include <QRegularExpression>
+#include <QSet>
+#include <QStringList>
 
 #include <algorithm>
 
@@ -9,18 +19,49 @@ namespace cynamoncode {
 namespace {
 constexpr int LineNumberMargin = 0;
 constexpr int SymbolMargin = 1;
+
+// Elementy puste HTML — nie mają znacznika zamykającego, więc nie otwierają bloku.
+bool isVoidHtmlElement(const QString &name)
+{
+    static const QSet<QString> elements = {
+        QStringLiteral("area"),  QStringLiteral("base"),   QStringLiteral("br"),
+        QStringLiteral("col"),   QStringLiteral("embed"),  QStringLiteral("hr"),
+        QStringLiteral("img"),   QStringLiteral("input"),  QStringLiteral("link"),
+        QStringLiteral("meta"),  QStringLiteral("param"),  QStringLiteral("source"),
+        QStringLiteral("track"), QStringLiteral("wbr"),
+    };
+    return elements.contains(name.toLower());
+}
+
+// <nazwa ...>, </nazwa>, <nazwa .../>. Komentarze, <!DOCTYPE> i <?php nie pasują.
+const QRegularExpression &tagPattern()
+{
+    static const QRegularExpression pattern(
+        QStringLiteral("<(/?)([A-Za-z][A-Za-z0-9:._-]*)[^<>]*?(/?)>"));
+    return pattern;
+}
+
+const QRegularExpression &closingTagStartPattern()
+{
+    static const QRegularExpression pattern(QStringLiteral("^[ \\t]*</"));
+    return pattern;
+}
+
+// Pozycja Scintilli (bajty UTF-8) znaku o indeksie `index` w tekście linii.
+long bytePosition(long lineStart, const QString &lineText, qsizetype index)
+{
+    return lineStart + static_cast<long>(lineText.left(index).toUtf8().size());
+}
+
 } // namespace
 
 EditorWidget::EditorWidget(QWidget *parent)
     : QsciScintilla(parent)
+    , m_font(QFontDatabase::systemFont(QFontDatabase::FixedFont))
 {
     // Bufor w UTF-8 — bez tego QScintilla traktuje tekst jako Latin-1.
     setUtf8(true);
     disableSuggestions();
-
-    const QFont font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    setFont(font);
-    setMarginsFont(font);
 
     setMarginType(LineNumberMargin, QsciScintilla::NumberMargin);
     setMarginLineNumbers(LineNumberMargin, true);
@@ -29,10 +70,18 @@ EditorWidget::EditorWidget(QWidget *parent)
 
     setCaretLineVisible(true);
     setEolMode(QsciScintilla::EolUnix);
+
+    // Zwykłe wcięcia (D024): Enter zachowuje wcięcie; styl „smart” zależy od lexera.
+    setAutoIndent(true);
+    setTabWidth(Indentation::Width);
+    setIndentationWidth(0); // poziom wcięcia = szerokość tabulatora
+    setIndentationsUseTabs(false);
+    setTabIndents(true);
+    setBackspaceUnindents(true);
     setWrapMode(QsciScintilla::WrapNone);
 
     connect(this, &QsciScintilla::linesChanged, this, &EditorWidget::updateLineNumberMarginWidth);
-    updateLineNumberMarginWidth();
+    setLanguage(LanguageId::Plain);
 }
 
 bool EditorWidget::loadText(const QString &text)
@@ -45,6 +94,26 @@ bool EditorWidget::loadText(const QString &text)
     return true;
 }
 
+void EditorWidget::setLanguage(LanguageId language)
+{
+    QsciLexer *previous = lexer();
+    QsciLexer *created = SyntaxHighlighter::createLexer(language, this);
+    if (created)
+        SyntaxHighlighter::applyPalette(*created, m_palette, m_font);
+
+    setLexer(created);
+    delete previous;
+
+    m_language = language;
+    applyEditorColors();
+}
+
+void EditorWidget::setTheme(const ThemePalette &palette)
+{
+    m_palette = palette;
+    setLanguage(m_language);
+}
+
 void EditorWidget::setLexer(QsciLexer *lexer)
 {
     QsciScintilla::setLexer(lexer);
@@ -52,11 +121,162 @@ void EditorWidget::setLexer(QsciLexer *lexer)
     disableSuggestions();
 }
 
+void EditorWidget::keyPressEvent(QKeyEvent *event)
+{
+    // Wcięcia wg klamer (D024) rozpoznają „{”/„}” po stylu lexera, a Scintilla
+    // koloruje leniwie przy rysowaniu. Przy szybkim pisaniu dokolorowujemy tekst
+    // do kursora (przyrostowo, od ostatnio pokolorowanej pozycji).
+    colouriseUpTo(SendScintilla(QsciScintillaBase::SCI_GETCURRENTPOS));
+
+    // Wcięcia wg znaczników HTML/XML (D024) — po obsłudze klawisza przez QScintillę,
+    // w jednej akcji cofania razem ze znakiem.
+    const bool isEnter = event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter;
+    const bool isSlash = event->text() == QLatin1String("/");
+    if (autoIndent() && usesTagIndentation() && (isEnter || isSlash)) {
+        const int linesBefore = lines();
+        beginUndoAction();
+        QsciScintilla::keyPressEvent(event);
+        if (isEnter && lines() > linesBefore)
+            indentAfterOpeningTag();
+        else if (isSlash)
+            unindentClosingTag();
+        endUndoAction();
+        return;
+    }
+    QsciScintilla::keyPressEvent(event);
+}
+
+void EditorWidget::colouriseUpTo(long position)
+{
+    if (!lexer())
+        return;
+    const long styledEnd = SendScintilla(QsciScintillaBase::SCI_GETENDSTYLED);
+    if (styledEnd >= position)
+        return;
+    // Od początku linii: lexer HTML wznowiony w środku linii dziedziczyłby stan
+    // poprzedniego znaku (np. „/>”) i źle oznaczył kolejne znaczniki.
+    const long line = SendScintilla(QsciScintillaBase::SCI_LINEFROMPOSITION,
+                                    static_cast<unsigned long>(styledEnd));
+    const long lineStart =
+        SendScintilla(QsciScintillaBase::SCI_POSITIONFROMLINE, static_cast<unsigned long>(line));
+    SendScintilla(QsciScintillaBase::SCI_COLOURISE, static_cast<unsigned long>(lineStart),
+                  position);
+}
+
+bool EditorWidget::usesTagIndentation() const
+{
+    return m_language == LanguageId::Html || m_language == LanguageId::Xml
+           || m_language == LanguageId::Php;
+}
+
+bool EditorWidget::isTagStyleAt(long position)
+{
+    const long style = SendScintilla(QsciScintillaBase::SCI_GETSTYLEAT,
+                                     static_cast<unsigned long>(position));
+    // Tylko znaczniki HTML/XML; „<” w komentarzach, napisach, JS i kodzie PHP ma inne style.
+    return style == QsciLexerHTML::Tag || style == QsciLexerHTML::UnknownTag;
+}
+
+bool EditorWidget::lineOpensTagBlock(int line)
+{
+    const QString lineText = text(line);
+    const long lineStart = SendScintilla(QsciScintillaBase::SCI_POSITIONFROMLINE,
+                                         static_cast<unsigned long>(line));
+    const bool html = m_language != LanguageId::Xml;
+
+    // Bilans znaczników w linii: otwarte, a niezamknięte w tej samej linii.
+    QStringList open;
+    QRegularExpressionMatchIterator it = tagPattern().globalMatch(lineText);
+    while (it.hasNext()) {
+        const QRegularExpressionMatch match = it.next();
+        if (!isTagStyleAt(bytePosition(lineStart, lineText, match.capturedStart())))
+            continue;
+        const bool closing = !match.captured(1).isEmpty();
+        const bool selfClosing = !match.captured(3).isEmpty();
+        const QString name = match.captured(2);
+        if (closing) {
+            if (!open.isEmpty())
+                open.removeLast();
+            continue;
+        }
+        if (selfClosing || (html && isVoidHtmlElement(name)))
+            continue;
+        open.append(name);
+    }
+    return !open.isEmpty();
+}
+
+void EditorWidget::indentAfterOpeningTag()
+{
+    int line = 0;
+    int index = 0;
+    getCursorPosition(&line, &index);
+    if (line <= 0)
+        return;
+    // Enter między <div>|</div>: linia z „</div>” zostaje na poziomie otwarcia.
+    if (text(line).trimmed().startsWith(QLatin1String("</")))
+        return;
+    if (!lineOpensTagBlock(line - 1))
+        return;
+
+    setIndentation(line, indentation(line - 1) + indentStep());
+    SendScintilla(QsciScintillaBase::SCI_GOTOPOS,
+                  SendScintilla(QsciScintillaBase::SCI_GETLINEINDENTPOSITION,
+                                static_cast<unsigned long>(line)));
+}
+
+void EditorWidget::unindentClosingTag()
+{
+    int line = 0;
+    int index = 0;
+    getCursorPosition(&line, &index);
+    const QString lineText = text(line);
+    const QRegularExpressionMatch match = closingTagStartPattern().match(lineText);
+    if (!match.hasMatch())
+        return;
+
+    // Tylko gdy „</” właśnie wpisano zaraz po wcięciu.
+    const long lineStart = SendScintilla(QsciScintillaBase::SCI_POSITIONFROMLINE,
+                                         static_cast<unsigned long>(line));
+    const long caret = SendScintilla(QsciScintillaBase::SCI_GETCURRENTPOS);
+    if (caret != bytePosition(lineStart, lineText, match.capturedLength()))
+        return;
+
+    colouriseUpTo(caret);
+    if (!isTagStyleAt(caret - 2))
+        return;
+
+    const int current = indentation(line);
+    if (current > 0)
+        setIndentation(line, std::max(0, current - indentStep()));
+}
+
+int EditorWidget::indentStep() const
+{
+    return indentationWidth() > 0 ? indentationWidth() : tabWidth();
+}
+
 void EditorWidget::disableSuggestions()
 {
     setAutoCompletionSource(QsciScintilla::AcsNone);
     setAutoCompletionThreshold(-1);
     setCallTipsStyle(QsciScintilla::CallTipsNone);
+}
+
+void EditorWidget::applyEditorColors()
+{
+    if (!lexer()) {
+        setPaper(m_palette.background);
+        setColor(m_palette.text);
+        setFont(m_font);
+    }
+    setCaretForegroundColor(m_palette.caret);
+    setCaretLineBackgroundColor(m_palette.caretLine);
+    setSelectionBackgroundColor(m_palette.selection);
+    setMarginsBackgroundColor(m_palette.marginBackground);
+    setMarginsForegroundColor(m_palette.marginText);
+    setMarginsFont(m_font);
+    updateLineNumberMarginWidth();
 }
 
 void EditorWidget::updateLineNumberMarginWidth()

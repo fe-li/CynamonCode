@@ -16,6 +16,8 @@ cynamoncode_add_qt_test(tst_encoding unit unit/tst_encoding.cpp cynamoncode_core
 cynamoncode_add_qt_test(tst_fileservice unit unit/tst_fileservice.cpp cynamoncode_core)
 cynamoncode_add_qt_test(tst_document_controller unit unit/tst_document_controller.cpp
     cynamoncode_core)
+cynamoncode_add_qt_test(tst_language_registry unit unit/tst_language_registry.cpp cynamoncode_core)
+cynamoncode_add_qt_test(tst_indentation unit unit/tst_indentation.cpp cynamoncode_core)
 
 # Testy GUI: bez serwera wyświetlania uruchamiaj z QT_QPA_PLATFORM=offscreen
 # (scripts/test.sh robi to sam; preset testowy debug-offscreen).
@@ -23,3 +25,5 @@ cynamoncode_add_qt_test(tst_mainwindow_smoke gui gui/tst_mainwindow_smoke.cpp cy
 cynamoncode_add_qt_test(tst_editor_no_suggestions gui gui/tst_editor_no_suggestions.cpp
     cynamoncode_ui)
 cynamoncode_add_qt_test(tst_tabs gui gui/tst_tabs.cpp cynamoncode_ui)
+cynamoncode_add_qt_test(tst_syntax_highlighting gui gui/tst_syntax_highlighting.cpp cynamoncode_ui)
+cynamoncode_add_qt_test(tst_auto_indent gui gui/tst_auto_indent.cpp cynamoncode_ui)

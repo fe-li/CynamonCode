@@ -2,14 +2,17 @@
 
 #include "controllers/DocumentController.h"
 #include "domain/DocumentState.h"
+#include "editor/ThemePalette.h"
 #include "ui/UserPrompts.h"
 
 #include <QHash>
+#include <QList>
 #include <QMainWindow>
 
 #include <memory>
 
 class QAction;
+class QActionGroup;
 class QCloseEvent;
 class QLabel;
 class QTabWidget;
@@ -35,12 +38,17 @@ public:
     EditorWidget *currentEditor() const;
     EditorWidget *editorAt(int index) const;
 
+    // Motyw dla wszystkich kart (na czas sesji; trwały zapis w E3).
+    void setTheme(ThemeId theme);
+    ThemeId theme() const { return m_theme; }
+
 protected:
     void closeEvent(QCloseEvent *event) override;
 
 private:
     void createActions();
     void createMenus();
+    void createViewAndLanguageMenus();
 
     void newDocument();
     void openFilesFromDialog();
@@ -49,6 +57,9 @@ private:
     bool saveAll();
     bool closeCurrentTab();
     void goToLine();
+    void chooseLanguage(LanguageId language);
+    void handleMixedLineEndings(EditorWidget *editor);
+    void syncEditorLanguage(EditorWidget *editor);
 
     bool saveEditor(EditorWidget *editor, bool askForPath);
     bool resolveUnsavedChanges(EditorWidget *editor);
@@ -64,6 +75,7 @@ private:
     void updateWindowTitle();
     void updateActions();
     void updateCursorStatus();
+    void updateLanguageActions();
 
     void reportOpenFailure(const QString &path, const OpenOutcome &outcome);
     void reportSaveFailure(const QString &name, const SaveOutcome &outcome);
@@ -90,6 +102,12 @@ private:
     QAction *m_pasteAction = nullptr;
     QAction *m_selectAllAction = nullptr;
     QAction *m_goToLineAction = nullptr;
+    QAction *m_lightThemeAction = nullptr;
+    QAction *m_darkThemeAction = nullptr;
+    QActionGroup *m_languageGroup = nullptr;
+    QList<QAction *> m_languageActions; // QAction::data() = int(LanguageId)
+
+    ThemeId m_theme = ThemeId::Light;
 };
 
 } // namespace cynamoncode

@@ -1,8 +1,10 @@
 #include "ui/MainWindow.h"
 
 #include "editor/EditorWidget.h"
+#include "services/LanguageRegistry.h"
 
 #include <QAction>
+#include <QActionGroup>
 #include <QCloseEvent>
 #include <QDir>
 #include <QFileInfo>
@@ -57,12 +59,14 @@ MainWindow::MainWindow(std::unique_ptr<UserPrompts> prompts, QWidget *parent)
 
     createActions();
     createMenus();
+    createViewAndLanguageMenus();
 
     connect(m_tabs, &QTabWidget::tabCloseRequested, this, [this](int index) { closeTab(index); });
     connect(m_tabs, &QTabWidget::currentChanged, this, [this] {
         updateWindowTitle();
         updateActions();
         updateCursorStatus();
+        updateLanguageActions();
     });
 
     newDocument();
@@ -112,7 +116,20 @@ bool MainWindow::openFile(const QString &path)
     // Jak w typowych edytorach: pusta, nieruszona karta „Nowy” ustępuje otwartemu plikowi.
     if (pristine)
         closeTab(m_tabs->indexOf(pristine));
+
+    if (document->lineEnding == LineEnding::Mixed)
+        handleMixedLineEndings(editor);
     return true;
+}
+
+void MainWindow::setTheme(ThemeId theme)
+{
+    m_theme = theme;
+    const ThemePalette palette = ThemePalette::forId(theme);
+    for (int i = 0; i < m_tabs->count(); ++i)
+        editorAt(i)->setTheme(palette);
+    m_lightThemeAction->setChecked(theme == ThemeId::Light);
+    m_darkThemeAction->setChecked(theme == ThemeId::Dark);
 }
 
 int MainWindow::documentCount() const
@@ -251,6 +268,44 @@ void MainWindow::createMenus()
     editMenu->addAction(m_goToLineAction);
 }
 
+void MainWindow::createViewAndLanguageMenus()
+{
+    QMenu *viewMenu = menuBar()->addMenu(tr("&Widok"));
+    viewMenu->setObjectName(QStringLiteral("menuView"));
+    QMenu *themeMenu = viewMenu->addMenu(tr("&Motyw"));
+    auto *themeGroup = new QActionGroup(this);
+    themeGroup->setExclusive(true);
+
+    m_lightThemeAction = themeMenu->addAction(tr("&Jasny"));
+    m_lightThemeAction->setObjectName(QStringLiteral("actionThemeLight"));
+    m_darkThemeAction = themeMenu->addAction(tr("&Ciemny"));
+    m_darkThemeAction->setObjectName(QStringLiteral("actionThemeDark"));
+    for (QAction *action : {m_lightThemeAction, m_darkThemeAction}) {
+        action->setCheckable(true);
+        themeGroup->addAction(action);
+    }
+    m_lightThemeAction->setChecked(true);
+    connect(m_lightThemeAction, &QAction::triggered, this, [this] { setTheme(ThemeId::Light); });
+    connect(m_darkThemeAction, &QAction::triggered, this, [this] { setTheme(ThemeId::Dark); });
+
+    QMenu *languageMenu = menuBar()->addMenu(tr("&Język"));
+    languageMenu->setObjectName(QStringLiteral("menuLanguage"));
+    m_languageGroup = new QActionGroup(this);
+    // ExclusiveOptional: bez otwartej karty żaden język nie jest zaznaczony.
+    m_languageGroup->setExclusionPolicy(QActionGroup::ExclusionPolicy::ExclusiveOptional);
+    for (const LanguageId language : LanguageRegistry::all()) {
+        QAction *action = languageMenu->addAction(LanguageRegistry::displayName(language));
+        action->setObjectName(QStringLiteral("actionLanguage_%1").arg(LanguageRegistry::key(language)));
+        action->setCheckable(true);
+        action->setData(static_cast<int>(language));
+        m_languageGroup->addAction(action);
+        m_languageActions.append(action);
+        connect(action, &QAction::triggered, this, [this, language] { chooseLanguage(language); });
+        if (language == LanguageId::Plain)
+            languageMenu->addSeparator();
+    }
+}
+
 void MainWindow::newDocument()
 {
     addEditorTab(m_documents.createNew(), QString(), LineEnding::LF);
@@ -315,6 +370,44 @@ void MainWindow::goToLine()
     editor->setFocus();
 }
 
+void MainWindow::chooseLanguage(LanguageId language)
+{
+    EditorWidget *editor = currentEditor();
+    if (!editor)
+        return;
+    m_documents.setLanguage(documentIdOf(editor), language);
+    editor->setLanguage(language);
+    updateLanguageActions();
+}
+
+void MainWindow::handleMixedLineEndings(EditorWidget *editor)
+{
+    const DocumentId id = documentIdOf(editor);
+    switch (m_prompts->askMixedLineEndings(this, displayName(id))) {
+    case MixedLineEndingChoice::Keep:
+        return;
+    case MixedLineEndingChoice::ConvertToLf:
+        editor->convertEols(QsciScintilla::EolUnix);
+        editor->setEolMode(QsciScintilla::EolUnix);
+        m_documents.setLineEnding(id, LineEnding::LF);
+        return;
+    case MixedLineEndingChoice::ConvertToCrLf:
+        editor->convertEols(QsciScintilla::EolWindows);
+        editor->setEolMode(QsciScintilla::EolWindows);
+        m_documents.setLineEnding(id, LineEnding::CRLF);
+        return;
+    }
+}
+
+void MainWindow::syncEditorLanguage(EditorWidget *editor)
+{
+    const DocumentState *document = m_documents.document(documentIdOf(editor));
+    if (document && editor->language() != document->language)
+        editor->setLanguage(document->language);
+    if (editor == currentEditor())
+        updateLanguageActions();
+}
+
 bool MainWindow::saveEditor(EditorWidget *editor, bool askForPath)
 {
     const DocumentId id = documentIdOf(editor);
@@ -345,6 +438,8 @@ bool MainWindow::saveEditor(EditorWidget *editor, bool askForPath)
     editor->setModified(false);
     updateTabTitle(editor);
     updateWindowTitle();
+    // Po „Zapisz jako” z nowym rozszerzeniem język mógł się zmienić (D023).
+    syncEditorLanguage(editor);
     return true;
 }
 
@@ -388,6 +483,12 @@ bool MainWindow::closeTab(int index)
 EditorWidget *MainWindow::addEditorTab(DocumentId id, const QString &text, LineEnding lineEnding)
 {
     auto *editor = new EditorWidget(m_tabs);
+    editor->setTheme(ThemePalette::forId(m_theme));
+    if (const DocumentState *document = m_documents.document(id)) {
+        editor->setLanguage(document->language);
+        // Wcięcia w stylu pliku — bez mieszania tabulatorów ze spacjami (D024).
+        editor->setIndentationsUseTabs(document->indentWithTabs);
+    }
     // Nowe linie w stylu pliku; istniejące końce linii zostają bez zmian (D016).
     editor->setEolMode(lineEnding == LineEnding::CRLF ? QsciScintilla::EolWindows
                                                       : QsciScintilla::EolUnix);
@@ -492,6 +593,16 @@ void MainWindow::updateActions()
         action->setEnabled(hasEditor);
     }
     m_saveAllAction->setEnabled(m_tabs->count() > 0);
+    m_languageGroup->setEnabled(hasEditor);
+}
+
+void MainWindow::updateLanguageActions()
+{
+    EditorWidget *editor = currentEditor();
+    for (QAction *action : std::as_const(m_languageActions)) {
+        action->setChecked(editor
+                           && action->data().toInt() == static_cast<int>(editor->language()));
+    }
 }
 
 void MainWindow::updateCursorStatus()

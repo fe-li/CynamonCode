@@ -59,6 +59,11 @@ public:
     SaveOutcome saveAs(DocumentId id, const QString &path, const QString &text);
     void close(DocumentId id);
 
+    // Ręczny wybór języka dla dokumentu (D023).
+    void setLanguage(DocumentId id, LanguageId language);
+    // Po świadomym ujednoliceniu końców linii przez użytkownika (D020).
+    void setLineEnding(DocumentId id, LineEnding lineEnding);
+
     const DocumentState *document(DocumentId id) const { return m_documents.find(id); }
     qsizetype documentCount() const { return m_documents.count(); }
 

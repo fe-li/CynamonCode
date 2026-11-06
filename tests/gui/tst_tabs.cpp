@@ -44,6 +44,13 @@ public:
         return savePaths.isEmpty() ? QString() : savePaths.takeFirst();
     }
     std::optional<int> askLineNumber(QWidget *, int, int) override { return lineNumber; }
+    MixedLineEndingChoice mixedAnswer = MixedLineEndingChoice::Keep;
+    int mixedQuestions = 0;
+    MixedLineEndingChoice askMixedLineEndings(QWidget *, const QString &) override
+    {
+        ++mixedQuestions;
+        return mixedAnswer;
+    }
     void showError(QWidget *, const QString &, const QString &message) override
     {
         errors << message;
@@ -132,6 +139,14 @@ private slots:
     void windowCloseCancelProtectsAllDocuments();
     void cancelledSaveAsKeepsDocumentModified();
     void goToLineMovesCursor();
+    void openedFileGetsDetectedLanguage();
+    void languageMenuChangesOnlyCurrentTab();
+    void saveAsRedetectsLanguage();
+    void manualLanguageSurvivesSaveAs();
+    void mixedLineEndingsKeepByDefault();
+    void mixedLineEndingsCanBeUnified();
+    void themeAppliesToAllTabs();
+    void indentationStyleFollowsFile();
 };
 
 void TestTabs::startsWithOneUntitledTab()
@@ -384,6 +399,156 @@ void TestTabs::goToLineMovesCursor()
     f.window->currentEditor()->getCursorPosition(&line, &index);
     QCOMPARE(line, 2);
     QCOMPARE(index, 0);
+}
+
+void TestTabs::openedFileGetsDetectedLanguage()
+{
+    QTemporaryDir dir;
+    const QString python = dir.filePath(QStringLiteral("skrypt.py"));
+    const QString shebang = dir.filePath(QStringLiteral("uruchom"));
+    QVERIFY(writeBytes(python, "def f():\n    pass\n"));
+    QVERIFY(writeBytes(shebang, "#!/bin/bash\necho ok\n"));
+
+    Fixture f;
+    QVERIFY(f.window->openFile(python));
+    QCOMPARE(int(f.window->currentEditor()->language()), int(LanguageId::Python));
+    QVERIFY(f.window->findChild<QAction *>(QStringLiteral("actionLanguage_python"))->isChecked());
+
+    QVERIFY(f.window->openFile(shebang));
+    QCOMPARE(int(f.window->currentEditor()->language()), int(LanguageId::Bash));
+    VERIFY_NO_SUGGESTIONS(f.window->currentEditor());
+}
+
+void TestTabs::languageMenuChangesOnlyCurrentTab()
+{
+    Fixture f;
+    trigger(*f.window, "actionNew");
+    EditorWidget *second = f.window->currentEditor();
+    edit(second, QStringLiteral("SELECT 1;"));
+
+    trigger(*f.window, "actionLanguage_sql");
+    QCOMPARE(int(second->language()), int(LanguageId::Sql));
+    QCOMPARE(int(f.window->editorAt(0)->language()), int(LanguageId::Plain));
+    QCOMPARE(second->text(), QStringLiteral("SELECT 1;"));
+    QVERIFY(second->isModified());
+    VERIFY_NO_SUGGESTIONS(second);
+
+    // Menu pokazuje język aktywnej karty.
+    trigger(*f.window, "actionCloseTab"); // pyta o zmiany → brak odpowiedzi = Anuluj
+    QCOMPARE(f.window->documentCount(), 2);
+    f.prompts->unsavedAnswers = {UnsavedChoice::Discard};
+    trigger(*f.window, "actionCloseTab");
+    QVERIFY(f.window->findChild<QAction *>(QStringLiteral("actionLanguage_plain"))->isChecked());
+}
+
+void TestTabs::saveAsRedetectsLanguage()
+{
+    QTemporaryDir dir;
+    const QString path = dir.filePath(QStringLiteral("program.cpp"));
+
+    Fixture f;
+    edit(f.window->currentEditor(), QStringLiteral("int main() {}\n"));
+    QCOMPARE(int(f.window->currentEditor()->language()), int(LanguageId::Plain));
+    f.prompts->savePaths = {path};
+    trigger(*f.window, "actionSave");
+    QCOMPARE(int(f.window->currentEditor()->language()), int(LanguageId::Cpp));
+    QVERIFY(f.window->findChild<QAction *>(QStringLiteral("actionLanguage_cpp"))->isChecked());
+}
+
+void TestTabs::manualLanguageSurvivesSaveAs()
+{
+    QTemporaryDir dir;
+    const QString path = dir.filePath(QStringLiteral("dane.txt"));
+
+    Fixture f;
+    edit(f.window->currentEditor(), QStringLiteral("{\"a\": 1}"));
+    trigger(*f.window, "actionLanguage_json");
+    f.prompts->savePaths = {path};
+    trigger(*f.window, "actionSave");
+    QCOMPARE(int(f.window->currentEditor()->language()), int(LanguageId::Json));
+}
+
+void TestTabs::mixedLineEndingsKeepByDefault()
+{
+    QTemporaryDir dir;
+    const QString path = dir.filePath(QStringLiteral("mieszane.txt"));
+    const QByteArray bytes("a\nb\r\nc\n");
+    QVERIFY(writeBytes(path, bytes));
+
+    Fixture f;
+    QVERIFY(f.window->openFile(path));
+    QCOMPARE(f.prompts->mixedQuestions, 1);
+    EditorWidget *editor = f.window->currentEditor();
+    QVERIFY(!editor->isModified());
+    QCOMPARE(editor->text(), QString::fromUtf8(bytes));
+
+    // Ponowna aktywacja otwartego pliku nie pyta drugi raz.
+    QVERIFY(f.window->openFile(path));
+    QCOMPARE(f.prompts->mixedQuestions, 1);
+
+    edit(editor, editor->text()); // zmiana bez zmiany treści oznacza dokument
+    trigger(*f.window, "actionSave");
+    QCOMPARE(readBytes(path), bytes);
+}
+
+void TestTabs::mixedLineEndingsCanBeUnified()
+{
+    QTemporaryDir dir;
+    const QString path = dir.filePath(QStringLiteral("mieszane.txt"));
+    QVERIFY(writeBytes(path, "a\nb\r\nc\rd"));
+
+    Fixture f;
+    f.prompts->mixedAnswer = MixedLineEndingChoice::ConvertToCrLf;
+    QVERIFY(f.window->openFile(path));
+    EditorWidget *editor = f.window->currentEditor();
+    QVERIFY(editor->isModified());
+    QCOMPARE(editor->text(), QStringLiteral("a\r\nb\r\nc\r\nd"));
+    // Plik na dysku zmienia się dopiero po zapisie (D020).
+    QCOMPARE(readBytes(path), QByteArray("a\nb\r\nc\rd"));
+
+    trigger(*f.window, "actionSave");
+    QCOMPARE(readBytes(path), QByteArray("a\r\nb\r\nc\r\nd"));
+    QVERIFY(!editor->isModified());
+}
+
+void TestTabs::themeAppliesToAllTabs()
+{
+    Fixture f;
+    trigger(*f.window, "actionNew");
+    trigger(*f.window, "actionLanguage_python");
+
+    trigger(*f.window, "actionThemeDark");
+    QVERIFY(f.window->theme() == ThemeId::Dark);
+    for (int i = 0; i < f.window->documentCount(); ++i) {
+        EditorWidget *editor = f.window->editorAt(i);
+        QVERIFY(editor->theme().id == ThemeId::Dark);
+        VERIFY_NO_SUGGESTIONS(editor);
+    }
+    QCOMPARE(int(f.window->currentEditor()->language()), int(LanguageId::Python));
+
+    // Nowa karta dziedziczy bieżący motyw.
+    trigger(*f.window, "actionNew");
+    QVERIFY(f.window->currentEditor()->theme().id == ThemeId::Dark);
+
+    trigger(*f.window, "actionThemeLight");
+    QVERIFY(f.window->editorAt(0)->theme().id == ThemeId::Light);
+}
+
+void TestTabs::indentationStyleFollowsFile()
+{
+    QTemporaryDir dir;
+    const QString tabs = dir.filePath(QStringLiteral("tabulatory.c"));
+    const QString spaces = dir.filePath(QStringLiteral("spacje.c"));
+    QVERIFY(writeBytes(tabs, "int f() {\n\treturn 0;\n}\n"));
+    QVERIFY(writeBytes(spaces, "int f() {\n    return 0;\n}\n"));
+
+    Fixture f;
+    QVERIFY(!f.window->currentEditor()->indentationsUseTabs()); // nowy dokument: spacje
+    QVERIFY(f.window->openFile(tabs));
+    QVERIFY(f.window->currentEditor()->indentationsUseTabs());
+    QVERIFY(f.window->currentEditor()->autoIndent());
+    QVERIFY(f.window->openFile(spaces));
+    QVERIFY(!f.window->currentEditor()->indentationsUseTabs());
 }
 
 QTEST_MAIN(TestTabs)

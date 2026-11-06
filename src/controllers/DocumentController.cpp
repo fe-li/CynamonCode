@@ -1,12 +1,27 @@
 #include "controllers/DocumentController.h"
 
 #include "services/EncodingService.h"
+#include "services/Indentation.h"
+#include "services/LanguageRegistry.h"
 
 #include <QFileInfo>
 
 #include <utility>
 
 namespace cynamoncode {
+
+namespace {
+
+// Pierwsza linia (do wykrywania shebangu); wystarczy krótki początek tekstu.
+QString firstLine(const QString &text)
+{
+    QString line = text.left(256).section(QLatin1Char('\n'), 0, 0);
+    if (line.endsWith(QLatin1Char('\r')))
+        line.chop(1);
+    return line;
+}
+
+} // namespace
 
 DocumentId DocumentController::createNew()
 {
@@ -43,6 +58,10 @@ OpenOutcome DocumentController::open(const QString &path)
     outcome.status = OpenStatus::Opened;
     outcome.id = m_documents.addFile(info.absoluteFilePath(), canonical, decoded.hasBom,
                                      decoded.lineEnding);
+    if (DocumentState *document = m_documents.find(outcome.id)) {
+        document->language = LanguageRegistry::detect(path, firstLine(decoded.text));
+        document->indentWithTabs = Indentation::usesTabs(decoded.text);
+    }
     outcome.text = std::move(decoded.text);
     return outcome;
 }
@@ -75,6 +94,20 @@ void DocumentController::close(DocumentId id)
     m_documents.remove(id);
 }
 
+void DocumentController::setLanguage(DocumentId id, LanguageId language)
+{
+    if (DocumentState *document = m_documents.find(id)) {
+        document->language = language;
+        document->languageChosenManually = true;
+    }
+}
+
+void DocumentController::setLineEnding(DocumentId id, LineEnding lineEnding)
+{
+    if (DocumentState *document = m_documents.find(id))
+        document->lineEnding = lineEnding;
+}
+
 SaveOutcome DocumentController::writeDocument(DocumentState &document, const QString &path,
                                               const QString &text)
 {
@@ -87,6 +120,8 @@ SaveOutcome DocumentController::writeDocument(DocumentState &document, const QSt
     document.filePath = path;
     document.canonicalPath = QFileInfo(path).canonicalFilePath();
     document.untitledNumber = 0;
+    if (!document.languageChosenManually)
+        document.language = LanguageRegistry::detect(path, firstLine(text));
     return {};
 }
 

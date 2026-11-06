@@ -1,5 +1,6 @@
 #pragma once
 
+#include "domain/LanguageId.h"
 #include "domain/LineEnding.h"
 
 #include <QString>
@@ -20,6 +21,9 @@ struct DocumentState
     int untitledNumber = 0; // numer „Nowy N” dla dokumentu bez pliku
     bool hasBom = false;
     LineEnding lineEnding = LineEnding::None;
+    LanguageId language = LanguageId::Plain;
+    bool languageChosenManually = false; // ręczny wybór ma pierwszeństwo (D023)
+    bool indentWithTabs = false;         // wykryte z pliku; nowe dokumenty — spacje (D024)
 
     bool isUntitled() const { return filePath.isEmpty(); }
 };

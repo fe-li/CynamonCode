@@ -4,6 +4,21 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/). Wersj
 
 ## [Niewydane]
 
+### Dodano (E2, 2026-11-06)
+
+- Kolorowanie składni dla 12 języków (zwykły tekst, C/C++, Python, Java, JavaScript, HTML, CSS, PHP, SQL, JSON, XML, Bash) przez lexery QScintilla — bez jakiejkolwiek analizy poprawności.
+- `LanguageRegistry`: wykrywanie po rozszerzeniu, znanych nazwach plików (`.bashrc`, `.profile` …) i shebangu; menu „Język” z ręcznym wyborem (ma pierwszeństwo, także po „Zapisz jako”).
+- `ThemePalette` (motyw jasny i ciemny, menu Widok → Motyw) i `SyntaxHighlighter`: kategorie tokenów z opisów stylów; style „unclosed/unknown/error” w kolorze kategorii bazowej, jedno tło, bez wypełnień i podkreśleń.
+- Mieszane końce linii: pytanie przy otwarciu (zachowaj / ujednolić do LF / do CRLF).
+- Automatyczne wcięcia: Enter zachowuje wcięcie, w C/C++, Javie, JavaScript, CSS i PHP „{” wcina, a „}” cofa; tabulatory dla plików nimi wciętych, w pozostałych 4 spacje (D024).
+- Wcięcia według znaczników w HTML, XML i części HTML plików PHP: znacznik otwierający wcina następną linię, „</” na początku linii cofa wcięcie; elementy puste (`<br>`, `<img>` …), samozamykające, komentarze i treść `<script>` nie zmieniają wcięć.
+- Testy: `tst_language_registry`, `tst_syntax_highlighting`, `tst_indentation`, `tst_auto_indent`; rozszerzone `tst_tabs` i `tst_document_controller`.
+- Decyzje D019–D024.
+
+### Weryfikacja E2 (2026-11-06)
+
+- Linux Mint 22.3: build od zera bez ostrzeżeń, `ctest` 11/11 PASS (0 pominiętych), testy GUI PASS offscreen i na X11. Ręczna kontrola (użytkownik): OK.
+
 ### Dodano (E1, 2026-11-05)
 
 - `EditorWidget` (QsciScintilla): UTF-8, numery linii, podświetlenie bieżącej linii; autouzupełnianie i call tips wyłączone w konstruktorze i po każdej zmianie lexera (D013).
