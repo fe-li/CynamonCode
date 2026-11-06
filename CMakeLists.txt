@@ -32,13 +32,33 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(cynamoncode_warnings INTERFACE -Wall -Wextra -Wpedantic)
 endif()
 
-# Kod aplikacji jako biblioteka statyczna, żeby testy mogły go linkować.
+# Logika bez GUI: model dokumentu, pliki, kodowanie, przypadki użycia (tylko Qt6::Core).
+add_library(cynamoncode_core STATIC
+    src/domain/DocumentState.h
+    src/domain/LineEnding.h
+    src/services/EncodingService.cpp
+    src/services/EncodingService.h
+    src/services/FileService.cpp
+    src/services/FileService.h
+    src/services/DocumentManager.cpp
+    src/services/DocumentManager.h
+    src/controllers/DocumentController.cpp
+    src/controllers/DocumentController.h)
+target_include_directories(cynamoncode_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_link_libraries(cynamoncode_core
+    PUBLIC Qt6::Core
+    PRIVATE cynamoncode_warnings)
+
+# Interfejs: okno, karty, edytor QScintilla, dialogi.
 add_library(cynamoncode_ui STATIC
+    src/editor/EditorWidget.cpp
+    src/editor/EditorWidget.h
     src/ui/MainWindow.cpp
-    src/ui/MainWindow.h)
-target_include_directories(cynamoncode_ui PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    src/ui/MainWindow.h
+    src/ui/UserPrompts.cpp
+    src/ui/UserPrompts.h)
 target_link_libraries(cynamoncode_ui
-    PUBLIC Qt6::Widgets
+    PUBLIC cynamoncode_core Qt6::Widgets QScintilla::QScintilla
     PRIVATE cynamoncode_warnings)
 
 add_executable(cynamoncode src/main.cpp)

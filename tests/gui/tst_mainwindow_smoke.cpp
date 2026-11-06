@@ -20,7 +20,8 @@ private slots:
 void TestMainWindowSmoke::hasProductTitle()
 {
     cynamoncode::MainWindow window;
-    QCOMPARE(window.windowTitle(), QStringLiteral("CynamonCode"));
+    // Start z pustą kartą „Nowy 1”; „[*]” to znacznik modyfikacji Qt.
+    QCOMPARE(window.windowTitle(), QStringLiteral("Nowy 1[*] — CynamonCode"));
 }
 
 void TestMainWindowSmoke::showsAndCloses()

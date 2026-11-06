@@ -4,6 +4,22 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/). Wersj
 
 ## [Niewydane]
 
+### Dodano (E1, 2026-11-05)
+
+- `EditorWidget` (QsciScintilla): UTF-8, numery linii, podświetlenie bieżącej linii; autouzupełnianie i call tips wyłączone w konstruktorze i po każdej zmianie lexera (D013).
+- Karty dokumentów i menu Plik/Edycja: Nowy, Otwórz, Zapisz, Zapisz jako, Zapisz wszystkie, Zamknij kartę, Cofnij, Ponów, Wytnij, Kopiuj, Wklej, Zaznacz wszystko, Przejdź do wiersza; status kursora w pasku stanu.
+- Ochrona niezapisanych zmian przy zamykaniu karty i okna (Zapisz / Nie zapisuj / Anuluj); nieudany zapis nie czyści flagi modyfikacji.
+- `EncodingService`: UTF-8 z BOM i bez, odmowa bajtów NUL i niepoprawnego UTF-8 (bez U+FFFD), rozpoznawanie LF/CRLF/mieszanych.
+- `FileService`: odczyt bajtów, zapis `QSaveFile` bez `directWriteFallback`; odmowa dla plików tylko do odczytu, zapis przez dowiązania symboliczne do pliku docelowego.
+- `DocumentManager`, `DocumentController`: rejestr dokumentów, deduplikacja kart po ścieżce kanonicznej.
+- `UserPrompts`: interfejs dialogów (testy GUI bez okien modalnych).
+- Testy: `tst_encoding`, `tst_fileservice`, `tst_document_controller`, `tst_editor_no_suggestions`, `tst_tabs`.
+- Decyzje D013–D018 w `docs/DECYZJE.md`.
+
+### Weryfikacja E1 (2026-11-06)
+
+- Linux Mint 22.3 (przez SSH): build Debug od zera OK, 0 ostrzeżeń; `ctest` 7/7 PASS (0 pominiętych); testy GUI PASS w trybie offscreen i na ekranie X11. Ręczna kontrola w programie (użytkownik): OK.
+
 ### Dodano (E0, 2026-11-05)
 
 - Repozytorium Git (`main`), `.gitignore`, `.gitattributes` (końce linii LF).
