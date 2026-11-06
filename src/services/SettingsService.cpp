@@ -17,6 +17,7 @@ const QString LineEndingsKey = QStringLiteral("editor/showLineEndings");
 const QString ZoomKey = QStringLiteral("editor/zoom");
 const QString ThemeKey = QStringLiteral("appearance/theme");
 const QString GeometryKey = QStringLiteral("window/geometry");
+const QString RestoreSessionKey = QStringLiteral("session/restore");
 
 bool readBool(const QSettings &settings, const QString &key, bool fallback)
 {
@@ -62,6 +63,7 @@ EditorSettings SettingsService::load() const
     result.theme = (theme == QLatin1String("dark") || theme == QLatin1String("light"))
                        ? theme
                        : defaults.theme;
+    result.restoreSession = readBool(m_settings, RestoreSessionKey, defaults.restoreSession);
     return result;
 }
 
@@ -75,6 +77,7 @@ void SettingsService::save(const EditorSettings &settings)
     m_settings.setValue(LineEndingsKey, settings.showLineEndings);
     m_settings.setValue(ZoomKey, std::clamp(settings.zoom, MinZoom, MaxZoom));
     m_settings.setValue(ThemeKey, settings.theme);
+    m_settings.setValue(RestoreSessionKey, settings.restoreSession);
     m_settings.sync();
 }
 

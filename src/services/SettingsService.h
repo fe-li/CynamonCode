@@ -18,6 +18,7 @@ struct EditorSettings
     bool showLineEndings = false;
     int zoom = 0;          // poziom powiększenia QScintilli (-10..20)
     QString theme = QStringLiteral("light"); // "light" / "dark"
+    bool restoreSession = true; // D034
 
     friend bool operator==(const EditorSettings &, const EditorSettings &) = default;
 };

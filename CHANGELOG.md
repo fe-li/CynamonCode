@@ -4,6 +4,26 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/). Wersj
 
 ## [Niewydane]
 
+### Dodano (E4, 2026-11-06)
+
+- Panel plików: Plik → „Otwórz folder…” (Ctrl+Shift+O), drzewo folderu z filtrem nazw, otwieranie plików dwuklikiem.
+- Przywracanie sesji przy starcie (włączone domyślnie, Ustawienia → „Przywracaj sesję przy starcie”): karty w obu panelach, aktywna karta, kursor, ręcznie wybrany język, otwarty folder.
+- Dwa panele kart: „Przenieś do drugiego widoku” i „Sklonuj do drugiego widoku” (wspólny bufor, edycja widoczna w obu).
+- „Znajdź we wszystkich otwartych” (Ctrl+Shift+F) z panelem wyników oraz „Zamień we wszystkich otwartych” z potwierdzeniem.
+- Pytanie przed otwarciem pliku większego niż 20 MiB; pliki z wiersza poleceń.
+- Testy: `tst_session`, `tst_split_view`, `tst_session_window`, `tst_workspace`, `tst_find_in_all`, `tst_large_files` (etykieta `perf`).
+- Decyzje D034–D039.
+
+### Zmieniono (E4)
+
+- Okno główne przebudowane na dwa panele; każda operacja (zapis, zamykanie, zmiany na dysku, język) działa raz na dokument, niezależnie od liczby widoków.
+- „Zamień wszystkie” przy wielu trafieniach podmienia zakres jedną operacją: 100 000 zamian w pliku 4,7 MiB — 142 ms (wcześniej ponad 5 minut).
+
+### Weryfikacja E4 (2026-11-06)
+
+- Przegląd kodu: poprawione zachowanie końców linii CRLF w klonach, zgodność aktywnego panelu z fokusem klawiatury, szybkość podglądu wyników na długich wierszach, kursor i przewinięcie przy zbiorczej zamianie, tworzenie katalogu ustawień, przycinanie pozycji z sesji, brak zapisu sesji przy wyłączonym przywracaniu.
+- Linux Mint 22.3: build od zera bez ostrzeżeń, `ctest` 24/24 PASS, testy GUI PASS offscreen i na X11, testy zależne od czasu stabilne w 50 przebiegach. Ręczna kontrola (użytkownik): OK.
+
 ### Dodano (2026-11-06)
 
 - Menu Pomoc → „O programie CynamonCode…”: logo, nazwa, wersja, autor (Kamil Feliszewski), strona www (www.feliszewski.pl), wersje Qt i QScintilla.

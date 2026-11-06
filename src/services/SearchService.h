@@ -29,6 +29,14 @@ std::optional<SearchMatch> matchAt(const QString &text, const SearchOptions &opt
 QString replacementFor(const QString &text, const SearchOptions &options, qsizetype start,
                        const QString &replacement);
 
+// Dopasowania w kolejności rosnącej (np. „Znajdź we wszystkich”); co najwyżej
+// `limit` pierwszych (ujemny = bez limitu).
+QList<SearchMatch> findAll(const QString &text, const SearchOptions &options,
+                           qsizetype limit = -1);
+
+// Sama liczba dopasowań — bez zbierania listy (np. dla wzorców pustej długości).
+qsizetype countMatches(const QString &text, const SearchOptions &options);
+
 // Wszystkie zamiany w kolejności rosnącej, bez nakładania się.
 QList<Replacement> replaceAll(const QString &text, const SearchOptions &options,
                               const QString &replacement);

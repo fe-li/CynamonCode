@@ -4,6 +4,7 @@
 
 #include <QApplication>
 #include <QSettings>
+#include <QStringList>
 
 #include <memory>
 
@@ -22,6 +23,14 @@ int main(int argc, char *argv[])
 
     cynamoncode::MainWindow window({}, std::make_unique<QSettings>());
     window.show();
+
+    // Najpierw poprzednia sesja (D034), potem pliki z wiersza poleceń.
+    window.restoreSession();
+    const QStringList arguments = QApplication::arguments().mid(1);
+    for (const QString &path : arguments) {
+        if (!path.startsWith(QLatin1Char('-')))
+            window.openFile(path);
+    }
 
     return QApplication::exec();
 }

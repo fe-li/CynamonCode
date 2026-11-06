@@ -57,6 +57,12 @@ public:
     // Zapis przy zmienionym pliku na dysku (D027); `path` — pełna ścieżka.
     virtual SaveConflictChoice askSaveConflict(QWidget *parent, const QString &path) = 0;
     virtual void showInfo(QWidget *parent, const QString &title, const QString &message) = 0;
+    // Folder dla panelu plików (D037); pusty = anulowano.
+    virtual QString askFolder(QWidget *parent, const QString &current) = 0;
+    // Plik powyżej progu ostrożności (D039).
+    virtual bool askOpenLargeFile(QWidget *parent, const QString &path, qint64 bytes) = 0;
+    // Potwierdzenie „Zamień we wszystkich otwartych” (D038).
+    virtual bool askReplaceInAll(QWidget *parent, int matches, int documents) = 0;
 };
 
 class DialogPrompts final : public UserPrompts
@@ -76,6 +82,9 @@ public:
                                            bool hasLocalChanges) override;
     SaveConflictChoice askSaveConflict(QWidget *parent, const QString &path) override;
     void showInfo(QWidget *parent, const QString &title, const QString &message) override;
+    QString askFolder(QWidget *parent, const QString &current) override;
+    bool askOpenLargeFile(QWidget *parent, const QString &path, qint64 bytes) override;
+    bool askReplaceInAll(QWidget *parent, int matches, int documents) override;
 };
 
 } // namespace cynamoncode

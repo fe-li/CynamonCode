@@ -154,6 +154,57 @@ void EditorWidget::applyReplacements(const QString &text, const QList<Replacemen
     if (replacements.isEmpty())
         return;
 
+    // Wiele zamian: jedna podmiana zakresu od pierwszego do ostatniego trafienia.
+    // Tysiące osobnych SCI_REPLACETARGET są w Scintilli bardzo wolne (D039);
+    // efekt i jedno cofnięcie pozostają takie same.
+    constexpr qsizetype BulkThreshold = 64;
+    if (replacements.size() >= BulkThreshold) {
+        const qsizetype spanStart = replacements.first().start;
+        const qsizetype spanEnd = replacements.last().start + replacements.last().length;
+        QString replaced;
+        replaced.reserve(spanEnd - spanStart);
+        qsizetype position = spanStart;
+        for (const Replacement &replacement : replacements) {
+            replaced += QStringView(text).mid(position, replacement.start - position);
+            replaced += replacement.text;
+            position = replacement.start + replacement.length;
+        }
+        // Zaznaczenie i przewinięcie jak przy osobnych zamianach: pozycje przeliczone
+        // przez listę zamian (pozycja wewnątrz trafienia → jego początek).
+        const auto [selectionStart, selectionEnd] = selectionRange(text);
+        const int firstLine = firstVisibleLine();
+        const auto mapPosition = [&replacements](qsizetype position) {
+            qsizetype shift = 0;
+            for (const Replacement &replacement : replacements) {
+                if (replacement.start >= position)
+                    break;
+                if (position < replacement.start + replacement.length)
+                    return replacement.start + shift; // wewnątrz trafienia
+                shift += replacement.text.size() - replacement.length;
+            }
+            return position + shift;
+        };
+        const qsizetype newSelectionStart = mapPosition(selectionStart);
+        const qsizetype newSelectionEnd = mapPosition(selectionEnd);
+
+        const QList<qsizetype> span = TextPositions::toUtf8Offsets(text, {spanStart, spanEnd});
+        const QByteArray utf8 = replaced.toUtf8();
+        beginUndoAction();
+        SendScintilla(QsciScintillaBase::SCI_SETTARGETRANGE, static_cast<unsigned long>(span.at(0)),
+                      static_cast<long>(span.at(1)));
+        SendScintilla(QsciScintillaBase::SCI_REPLACETARGET, static_cast<unsigned long>(utf8.size()),
+                      utf8.constData());
+        endUndoAction();
+
+        const QString newText = this->text();
+        const QList<qsizetype> selection =
+            TextPositions::toUtf8Offsets(newText, {newSelectionStart, newSelectionEnd});
+        SendScintilla(QsciScintillaBase::SCI_SETSEL, static_cast<unsigned long>(selection.at(0)),
+                      static_cast<long>(selection.at(1)));
+        setFirstVisibleLine(firstLine);
+        return;
+    }
+
     QList<qsizetype> indices;
     indices.reserve(replacements.size() * 2);
     for (const Replacement &replacement : replacements) {

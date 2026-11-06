@@ -50,11 +50,19 @@ FindReplaceDialog::FindReplaceDialog(QWidget *parent)
     QPushButton *findPrevious = makeButton(tr("Znajdź &poprzedni"), "findPreviousButton");
     QPushButton *replace = makeButton(tr("Za&mień"), "replaceButton");
     QPushButton *replaceAll = makeButton(tr("Zamień &wszystkie"), "replaceAllButton");
+    QPushButton *findInAll = makeButton(tr("Znajdź we wszystkich &otwartych"), "findInAllButton");
+    QPushButton *replaceInAll =
+        makeButton(tr("Zamień we wszystkich o&twartych"), "replaceInAllButton");
     QPushButton *close = makeButton(tr("Zamknij"), "closeButton");
 
     auto *buttons = new QVBoxLayout;
-    for (QPushButton *button : {findNext, findPrevious, replace, replaceAll, close})
+    for (QPushButton *button : {findNext, findPrevious, replace, replaceAll})
         buttons->addWidget(button);
+    buttons->addSpacing(8);
+    buttons->addWidget(findInAll);
+    buttons->addWidget(replaceInAll);
+    buttons->addSpacing(8);
+    buttons->addWidget(close);
     buttons->addStretch();
 
     m_statusLabel = new QLabel(this);
@@ -75,6 +83,8 @@ FindReplaceDialog::FindReplaceDialog(QWidget *parent)
     connect(findPrevious, &QPushButton::clicked, this, [this] { emit findRequested(false); });
     connect(replace, &QPushButton::clicked, this, &FindReplaceDialog::replaceRequested);
     connect(replaceAll, &QPushButton::clicked, this, &FindReplaceDialog::replaceAllRequested);
+    connect(findInAll, &QPushButton::clicked, this, &FindReplaceDialog::findInAllRequested);
+    connect(replaceInAll, &QPushButton::clicked, this, &FindReplaceDialog::replaceInAllRequested);
     connect(close, &QPushButton::clicked, this, &QDialog::hide);
     connect(m_findEdit, &QLineEdit::returnPressed, this, [this] { emit findRequested(true); });
     connect(m_replaceEdit, &QLineEdit::returnPressed, this, &FindReplaceDialog::replaceRequested);

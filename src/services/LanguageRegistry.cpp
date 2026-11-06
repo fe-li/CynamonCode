@@ -91,6 +91,15 @@ QString key(LanguageId language)
     return QStringLiteral("plain");
 }
 
+std::optional<LanguageId> fromKey(const QString &key)
+{
+    for (const LanguageId language : all()) {
+        if (LanguageRegistry::key(language) == key)
+            return language;
+    }
+    return std::nullopt;
+}
+
 QString displayName(LanguageId language)
 {
     switch (language) {

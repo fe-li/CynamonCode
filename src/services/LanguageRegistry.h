@@ -5,6 +5,8 @@
 #include <QList>
 #include <QString>
 
+#include <optional>
+
 namespace cynamoncode::LanguageRegistry {
 
 // Wszystkie obsługiwane języki w kolejności menu „Język”.
@@ -12,6 +14,9 @@ const QList<LanguageId> &all();
 
 // Stały, nietłumaczony klucz (np. "cpp") — do nazw obiektów i przyszłych ustawień.
 QString key(LanguageId language);
+
+// Odwrotność key(); nullopt dla nieznanego klucza (np. ze starej sesji).
+std::optional<LanguageId> fromKey(const QString &key);
 
 // Nazwa do wyświetlenia w interfejsie (tłumaczona).
 QString displayName(LanguageId language);

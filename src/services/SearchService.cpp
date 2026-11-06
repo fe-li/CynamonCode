@@ -153,6 +153,38 @@ QString replacementFor(const QString &text, const SearchOptions &options, qsizet
     return match.hasMatch() ? expand(match, replacement) : replacement;
 }
 
+QList<SearchMatch> findAll(const QString &text, const SearchOptions &options, qsizetype limit)
+{
+    QList<SearchMatch> result;
+    if (options.pattern.isEmpty() || limit == 0)
+        return result;
+    const QRegularExpression expression = buildExpression(options);
+    if (!expression.isValid())
+        return result;
+    QRegularExpressionMatchIterator it = expression.globalMatch(text);
+    while (it.hasNext() && (limit < 0 || result.size() < limit)) {
+        const QRegularExpressionMatch match = it.next();
+        result.append({match.capturedStart(), match.capturedLength()});
+    }
+    return result;
+}
+
+qsizetype countMatches(const QString &text, const SearchOptions &options)
+{
+    if (options.pattern.isEmpty())
+        return 0;
+    const QRegularExpression expression = buildExpression(options);
+    if (!expression.isValid())
+        return 0;
+    qsizetype count = 0;
+    QRegularExpressionMatchIterator it = expression.globalMatch(text);
+    while (it.hasNext()) {
+        it.next();
+        ++count;
+    }
+    return count;
+}
+
 QList<Replacement> replaceAll(const QString &text, const SearchOptions &options,
                               const QString &replacement)
 {

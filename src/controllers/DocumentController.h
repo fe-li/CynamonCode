@@ -60,6 +60,9 @@ struct SaveOutcome
 class DocumentController
 {
 public:
+    // Powyżej tego rozmiaru UI pyta przed otwarciem (D039, SPECYFIKACJA §3.4).
+    static constexpr qint64 LargeFileWarningBytes = 20LL * 1024 * 1024;
+
     DocumentId createNew();
     OpenOutcome open(const QString &path);
     // Bez `overwriteDiskChanges` zapis odmawia (DiskChanged), gdy plik na dysku
@@ -96,6 +99,8 @@ public:
     void setLineEnding(DocumentId id, LineEnding lineEnding);
 
     const DocumentState *document(DocumentId id) const { return m_documents.find(id); }
+    // Dokument otwarty pod tą ścieżką (porównanie ścieżek kanonicznych).
+    std::optional<DocumentId> findOpen(const QString &path) const;
     qsizetype documentCount() const { return m_documents.count(); }
 
 private:

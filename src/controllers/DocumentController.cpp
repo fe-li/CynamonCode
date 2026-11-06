@@ -123,6 +123,11 @@ void DocumentController::close(DocumentId id)
     m_documents.remove(id);
 }
 
+std::optional<DocumentId> DocumentController::findOpen(const QString &path) const
+{
+    return m_documents.findByCanonicalPath(QFileInfo(path).canonicalFilePath());
+}
+
 DiskStatus DocumentController::checkDisk(DocumentId id, bool trustMetadata)
 {
     DocumentState *document = m_documents.find(id);

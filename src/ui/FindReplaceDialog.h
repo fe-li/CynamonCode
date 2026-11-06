@@ -34,6 +34,8 @@ signals:
     void findRequested(bool forward);
     void replaceRequested();
     void replaceAllRequested();
+    void findInAllRequested();    // wszystkie otwarte dokumenty (D038)
+    void replaceInAllRequested();
 
 private:
     QLineEdit *m_findEdit = nullptr;

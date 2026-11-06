@@ -83,6 +83,29 @@ public:
     {
         infos << message;
     }
+
+    QString folderAnswer;
+    QString askFolder(QWidget *, const QString &) override { return folderAnswer; }
+
+    bool openLargeAnswer = false;
+    int largeFileQuestions = 0;
+    bool askOpenLargeFile(QWidget *, const QString &, qint64) override
+    {
+        ++largeFileQuestions;
+        return openLargeAnswer;
+    }
+
+    bool replaceInAllAnswer = true;
+    int replaceInAllQuestions = 0;
+    int lastReplaceMatches = 0;
+    int lastReplaceDocuments = 0;
+    bool askReplaceInAll(QWidget *, int matches, int documents) override
+    {
+        ++replaceInAllQuestions;
+        lastReplaceMatches = matches;
+        lastReplaceDocuments = documents;
+        return replaceInAllAnswer;
+    }
 };
 
 } // namespace cynamoncode::testing

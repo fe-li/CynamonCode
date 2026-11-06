@@ -20,6 +20,7 @@ cynamoncode_add_qt_test(tst_language_registry unit unit/tst_language_registry.cp
 cynamoncode_add_qt_test(tst_indentation unit unit/tst_indentation.cpp cynamoncode_core)
 cynamoncode_add_qt_test(tst_search unit unit/tst_search.cpp cynamoncode_core)
 cynamoncode_add_qt_test(tst_settings unit unit/tst_settings.cpp cynamoncode_core)
+cynamoncode_add_qt_test(tst_session unit unit/tst_session.cpp cynamoncode_core)
 cynamoncode_add_qt_test(tst_disk_changes unit unit/tst_disk_changes.cpp cynamoncode_core)
 
 # Testy GUI: bez serwera wyświetlania uruchamiaj z QT_QPA_PLATFORM=offscreen
@@ -34,3 +35,11 @@ cynamoncode_add_qt_test(tst_find_replace gui gui/tst_find_replace.cpp cynamoncod
 cynamoncode_add_qt_test(tst_external_changes gui gui/tst_external_changes.cpp cynamoncode_ui)
 cynamoncode_add_qt_test(tst_settings_window gui gui/tst_settings_window.cpp cynamoncode_ui)
 cynamoncode_add_qt_test(tst_about gui gui/tst_about.cpp cynamoncode_ui)
+cynamoncode_add_qt_test(tst_split_view gui gui/tst_split_view.cpp cynamoncode_ui)
+cynamoncode_add_qt_test(tst_session_window gui gui/tst_session_window.cpp cynamoncode_ui)
+cynamoncode_add_qt_test(tst_workspace gui gui/tst_workspace.cpp cynamoncode_ui)
+cynamoncode_add_qt_test(tst_find_in_all gui gui/tst_find_in_all.cpp cynamoncode_ui)
+
+# Wydajność (D039): łagodne limity czasu; etykieta perf pozwala pominąć: ctest -LE perf
+cynamoncode_add_qt_test(tst_large_files perf gui/tst_large_files.cpp cynamoncode_ui)
+set_tests_properties(tst_large_files PROPERTIES TIMEOUT 300)

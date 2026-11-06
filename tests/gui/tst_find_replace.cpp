@@ -45,6 +45,8 @@ private slots:
     void replaceSelectsThenReplaces();
     void replaceAllIsSingleUndoStep();
     void replaceAllWithRegexGroups();
+    void bulkReplaceKeepsUnicodeAndUndo();
+    void bulkReplaceKeepsCursorAndScroll();
     void invalidRegexShowsMessage();
     void dialogButtonsAndShortcuts();
     void selectionPrefillsDialog();
@@ -147,6 +149,65 @@ void TestFindReplace::replaceAllWithRegexGroups()
              2);
     QCOMPARE(editor->text(), QStringLiteral("1: łódź\r\n2: żółw\r\n"));
     QVERIFY(editor->autoCompletionSource() == QsciScintilla::AcsNone);
+}
+
+void TestFindReplace::bulkReplaceKeepsUnicodeAndUndo()
+{
+    // ≥ 64 zamian idzie ścieżką jednej podmiany zakresu (EditorWidget::applyReplacements).
+    MainWindow window;
+    EditorWidget *editor = window.currentEditor();
+    QString original = QStringLiteral("początek 🐈 ");
+    QString expected = original;
+    for (int i = 0; i < 300; ++i) {
+        original += QStringLiteral("😀ż%1 łódź\n").arg(i);
+        expected += QStringLiteral("[Ż]%1 łódź\n").arg(i);
+    }
+    original += QStringLiteral("koniec 🔥");
+    expected += QStringLiteral("koniec 🔥");
+    edit(editor, original);
+
+    QCOMPARE(window.replaceAllInCurrent(options(QStringLiteral("😀ż")), QStringLiteral("[Ż]")), 300);
+    QCOMPARE(editor->text(), expected);
+    editor->undo();
+    QCOMPARE(editor->text(), original);
+    editor->redo();
+    QCOMPARE(editor->text(), expected);
+}
+
+void TestFindReplace::bulkReplaceKeepsCursorAndScroll()
+{
+    // Regresja przeglądu E4 (D4): ścieżka zbiorcza nie przesuwa kursora ani widoku.
+    MainWindow window;
+    window.resize(800, 300);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    EditorWidget *editor = window.currentEditor();
+    QString text;
+    for (int i = 0; i < 200; ++i)
+        text += QStringLiteral("kot %1\n").arg(i);
+    edit(editor, text);
+    editor->setCursorPosition(120, 2); // „ko|t 120” — wewnątrz trafienia
+    editor->setFirstVisibleLine(100);
+
+    QCOMPARE(window.replaceAllInCurrent(options(QStringLiteral("kot")), QStringLiteral("lis")), 200);
+    int line = -1;
+    int index = -1;
+    editor->getCursorPosition(&line, &index);
+    QCOMPARE(line, 120);
+    QCOMPARE(index, 0); // wewnątrz trafienia → jego początek
+    QCOMPARE(editor->firstVisibleLine(), 100);
+
+    // Za trafieniem: „lis 1|50” — po zamianie na dłuższy tekst z polską literą
+    // kursor stoi przed „50” (sprawdzane w indeksach QString, nie kolumnach Scintilli).
+    editor->setCursorPosition(150, 5); // przewija widok do kursora
+    const int scrolledTo = editor->firstVisibleLine();
+    QCOMPARE(window.replaceAllInCurrent(options(QStringLiteral("lis")), QStringLiteral("rysiś")), 200);
+    const QString after = editor->text();
+    const auto [selectionStart, selectionEnd] = editor->selectionRange(after);
+    QCOMPARE(selectionStart, selectionEnd);
+    QCOMPARE(after.mid(selectionStart, 3), QStringLiteral("50\n"));
+    QCOMPARE(after.mid(selectionStart - 7, 7), QStringLiteral("rysiś 1"));
+    QCOMPARE(editor->firstVisibleLine(), scrolledTo);
 }
 
 void TestFindReplace::invalidRegexShowsMessage()

@@ -54,6 +54,8 @@ add_library(cynamoncode_core STATIC
     src/services/LanguageRegistry.h
     src/services/SearchService.cpp
     src/services/SearchService.h
+    src/services/SessionService.cpp
+    src/services/SessionService.h
     src/services/SettingsService.cpp
     src/services/SettingsService.h
     src/services/TextPositions.cpp
@@ -78,10 +80,14 @@ add_library(cynamoncode_ui STATIC
     src/editor/ThemePalette.h
     src/ui/AboutDialog.cpp
     src/ui/AboutDialog.h
+    src/ui/FileTreeDock.cpp
+    src/ui/FileTreeDock.h
     src/ui/FindReplaceDialog.cpp
     src/ui/FindReplaceDialog.h
     src/ui/MainWindow.cpp
     src/ui/MainWindow.h
+    src/ui/SearchResultsDock.cpp
+    src/ui/SearchResultsDock.h
     src/ui/UserPrompts.cpp
     src/ui/UserPrompts.h)
 target_link_libraries(cynamoncode_ui

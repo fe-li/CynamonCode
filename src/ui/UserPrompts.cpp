@@ -136,6 +136,43 @@ void DialogPrompts::showInfo(QWidget *parent, const QString &title, const QStrin
     QMessageBox::information(parent, title, message);
 }
 
+QString DialogPrompts::askFolder(QWidget *parent, const QString &current)
+{
+    return QFileDialog::getExistingDirectory(parent, tr("Otwórz folder"), current);
+}
+
+bool DialogPrompts::askOpenLargeFile(QWidget *parent, const QString &path, qint64 bytes)
+{
+    QMessageBox box(QMessageBox::Warning, tr("Duży plik"),
+                    tr("Plik %1 ma %2 MiB.\n\nBardzo duże pliki mogą otwierać się długo i "
+                       "spowalniać edytor.")
+                        .arg(path)
+                        .arg(static_cast<double>(bytes) / (1024.0 * 1024.0), 0, 'f', 1),
+                    QMessageBox::NoButton, parent);
+    QPushButton *open = box.addButton(tr("Otwórz mimo to"), QMessageBox::AcceptRole);
+    QPushButton *cancel = box.addButton(tr("Anuluj"), QMessageBox::RejectRole);
+    box.setDefaultButton(cancel);
+    box.setEscapeButton(cancel);
+    box.exec();
+    return box.clickedButton() == open;
+}
+
+bool DialogPrompts::askReplaceInAll(QWidget *parent, int matches, int documents)
+{
+    QMessageBox box(QMessageBox::Question, tr("Zamień we wszystkich otwartych"),
+                    tr("Zamienić %1 wystąpień w %2 dokumentach?\n\nPliki na dysku zmienią się "
+                       "dopiero po zapisaniu; każdy dokument można cofnąć osobno (Ctrl+Z).")
+                        .arg(matches)
+                        .arg(documents),
+                    QMessageBox::NoButton, parent);
+    QPushButton *replace = box.addButton(tr("Zamień"), QMessageBox::AcceptRole);
+    QPushButton *cancel = box.addButton(tr("Anuluj"), QMessageBox::RejectRole);
+    box.setDefaultButton(cancel);
+    box.setEscapeButton(cancel);
+    box.exec();
+    return box.clickedButton() == replace;
+}
+
 std::optional<QFont> DialogPrompts::askFont(QWidget *parent, const QFont &current)
 {
     bool accepted = false;
