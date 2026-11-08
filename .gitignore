@@ -11,7 +11,9 @@ compile_commands.json
 .idea/
 .cache/
 
-# Lokalne pliki asystenta Claude Code (nie są publikowane)
+# Lokalne pliki robocze (nie są publikowane): asystent, dokumentacja projektowa, dziennik prac
 /.claude/
 /CLAUDE.md
 /START_CLAUDE.md
+/docs/
+/TASKS.md

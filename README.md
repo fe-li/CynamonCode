@@ -41,7 +41,7 @@
 
 ### Czego tu nie ma — celowo
 
-Autouzupełniania i list podpowiedzi, podpowiedzi parametrów, sprawdzania składni i podkreślania „błędów”, LSP, uruchamiania i kompilowania plików, debuggera, asystentów AI, telemetrii i połączeń z siecią. CynamonCode koloruje składnię — piszesz Ty. Zasady: [`docs/SPECYFIKACJA.md`](docs/SPECYFIKACJA.md) §1.2.
+Autouzupełniania i list podpowiedzi, podpowiedzi parametrów, sprawdzania składni i podkreślania „błędów”, LSP, uruchamiania i kompilowania plików, debuggera, asystentów AI, telemetrii i połączeń z siecią. CynamonCode koloruje składnię — piszesz Ty. To stała zasada projektu, pilnowana testami (`tests/gui/tst_editor_no_suggestions.cpp`).
 
 ## Instalacja
 
@@ -61,7 +61,15 @@ Odinstalowanie: `sudo apt remove cynamoncode`. Pakiet nie zmienia domyślnych pr
 
 ## Budowanie ze źródeł
 
-Wymagania (Linux Mint 22.x / Ubuntu 24.04): C++20, CMake ≥ 3.21, Ninja, Qt 6 (Core, Gui, Widgets, Test), QScintilla 2 dla Qt 6.
+Wymagania (Linux Mint 22.x / Ubuntu 24.04): C++20, CMake ≥ 3.21, Ninja, Qt 6 (Core, Gui, Widgets, Test), QScintilla 2 dla Qt 6. Pakiety systemowe:
+
+```bash
+sudo apt install build-essential cmake ninja-build git pkg-config \
+  qt6-base-dev qt6-tools-dev qt6-tools-dev-tools qt6-qpa-plugins \
+  libqscintilla2-qt6-dev libgl-dev
+```
+
+Budowanie, testy i uruchomienie:
 
 ```bash
 bash scripts/bootstrap-mint.sh          # sprawdza zależności; instaluje tylko z --install i po potwierdzeniu
@@ -86,7 +94,15 @@ cpack --config build-release/CPackConfig.cmake -B build-release/pakiety
 cpack --config build-release/CPackSourceConfig.cmake -B build-release/pakiety
 ```
 
-Szczegóły i typowe problemy: [`docs/LINUX_MINT.md`](docs/LINUX_MINT.md). Strona www programu jest w `website/` (`bash scripts/build-website.sh`).
+Presety CMake: `debug` (katalog `build/`), `release` (`build-release/`), testowy `debug-offscreen`. Niestandardową instalację QScintilli wskażesz przez `-DQScintillaQt6_ROOT=<katalog>`. Strona www programu jest w `website/` (`bash scripts/build-website.sh`).
+
+### Typowe problemy
+
+- **„Could not find the Qt platform plugin”** — brak `qt6-qpa-plugins`. Bez ekranu (SSH, CI) testy GUI uruchamiaj z `QT_QPA_PLATFORM=offscreen` (robi to `scripts/test.sh` i preset `debug-offscreen`).
+- **„Failed to find required Qt component Gui” / WrapOpenGL** — zainstaluj `libgl-dev`.
+- **„Could NOT find XKB”** — opcjonalna zależność Qt6Gui; budowanie działa bez niej (`libxkbcommon-dev` usuwa komunikat).
+- **`Qsci/qsciscintilla.h` not found** — brak `libqscintilla2-qt6-dev`; projekt wymaga wariantu Qt 6, wariant Qt 5 nie jest używany.
+- **Polskie napisy w oknach wyboru pliku i czcionki** — pakiet `qt6-translations-l10n` (pakiet `.deb` go zaleca).
 
 ## Struktura repozytorium
 
@@ -99,8 +115,8 @@ Szczegóły i typowe problemy: [`docs/LINUX_MINT.md`](docs/LINUX_MINT.md). Stron
 | `resources/` | ikony i logo źródłowe |
 | `scripts/` | sprawdzanie zależności, budowanie, testy, ikony, strona www |
 | `website/` | strona www (PL i EN) |
-| `docs/` | specyfikacja, architektura, etapy, testy, decyzje, instrukcja dla Mint |
-| `TASKS.md`, `CHANGELOG.md` | stan prac i historia zmian |
+| `.github/workflows/` | CI: budowanie i testy na Ubuntu 24.04 |
+| `CHANGELOG.md` | historia zmian |
 
 ## Licencja
 

@@ -6,7 +6,7 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/). Wersj
 
 ### Dodano (2026-11-08)
 
-- Repozytorium na GitHubie (github.com/fe-li/CynamonCode) z wydaniami do pobrania; README z opisem, zrzutami i instrukcją instalacji; CI (GitHub Actions, Ubuntu 24.04): build Debug i Release bez ostrzeżeń i wszystkie testy (D048).
+- Repozytorium na GitHubie (github.com/fe-li/CynamonCode) z wydaniami do pobrania; README z opisem, zrzutami, instalacją i instrukcją budowania; CI (GitHub Actions, Ubuntu 24.04): build Debug i Release bez ostrzeżeń i wszystkie testy.
 - Strona www odsyła do repozytorium na GitHubie.
 
 ### Dodano (2026-11-06)
