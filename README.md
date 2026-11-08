@@ -1,67 +1,70 @@
 <p align="center">
-  <img src="resources/icons/cynamoncode-128.png" width="128" height="128" alt="Logo CynamonCode">
+  <img src="resources/icons/cynamoncode-128.png" width="128" height="128" alt="CynamonCode logo">
 </p>
 
 <h1 align="center">CynamonCode</h1>
 
 <p align="center">
-  <strong>Lekki, natywny edytor tekstu i kodu dla Linuksa.</strong><br>
-  Karty, kolorowanie składni i wygodne wyszukiwanie — bez podpowiedzi, bez sprawdzania kodu, bez rozpraszania.
+  <strong>A lightweight, native text and code editor for Linux.</strong><br>
+  Tabs, syntax highlighting and convenient search — no suggestions, no code checking, no distractions.
 </p>
 
 <p align="center">
-  <a href="https://github.com/fe-li/CynamonCode/releases/latest"><img src="https://img.shields.io/github/v/release/fe-li/CynamonCode?label=wersja" alt="Najnowsza wersja"></a>
-  <a href="https://github.com/fe-li/CynamonCode/actions/workflows/ci.yml"><img src="https://github.com/fe-li/CynamonCode/actions/workflows/ci.yml/badge.svg" alt="Budowanie i testy"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/licencja-GPL--3.0--or--later-blue" alt="Licencja GPL-3.0-or-later"></a>
+  <a href="https://github.com/fe-li/CynamonCode/releases/latest"><img src="https://img.shields.io/github/v/release/fe-li/CynamonCode?label=release" alt="Latest release"></a>
+  <a href="https://github.com/fe-li/CynamonCode/actions/workflows/ci.yml"><img src="https://github.com/fe-li/CynamonCode/actions/workflows/ci.yml/badge.svg" alt="Build and tests"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="License GPL-3.0-or-later"></a>
 </p>
+
+<p align="center"><strong>English</strong> · <a href="README.pl.md">Polski</a></p>
 
 <p align="center">
-  <a href="https://github.com/fe-li/CynamonCode/releases/latest"><strong>⬇ Pobierz pakiet .deb</strong></a> ·
-  <a href="#instalacja">Instalacja</a> ·
-  <a href="#funkcje">Funkcje</a> ·
-  <a href="#budowanie-ze-źródeł">Budowanie</a> ·
-  <a href="#in-english">English</a>
+  <a href="https://github.com/fe-li/CynamonCode/releases/latest"><strong>⬇ Download the .deb package</strong></a> ·
+  <a href="#installation">Installation</a> ·
+  <a href="#features">Features</a> ·
+  <a href="#building-from-source">Building</a>
 </p>
 
-| Motyw jasny z panelem plików | Motyw ciemny i dwa widoki |
+| Light theme with the file panel | Dark theme and two views |
 |---|---|
-| ![CynamonCode w motywie jasnym: kilka kart, plik Pythona z kolorowaniem składni i panel plików](website/img/zrzut-jasny.png) | ![CynamonCode w motywie ciemnym: dwa widoki obok siebie z plikami HTML i CSS](website/img/zrzut-ciemny.png) |
+| ![CynamonCode in the light theme: several tabs, a Python file with syntax highlighting and the file panel](website/img/zrzut-jasny.png) | ![CynamonCode in the dark theme: two views side by side with HTML and CSS files](website/img/zrzut-ciemny.png) |
 
-## Funkcje
+## Features
 
-- **Karty i dwa widoki** — przenoszenie karty do drugiego widoku albo klon tego samego dokumentu obok.
-- **Kolorowanie składni 12 języków** — C/C++, Python, Java, JavaScript, HTML, CSS, PHP, SQL, JSON, XML, Bash i zwykły tekst; motyw jasny i ciemny.
-- **Znajdź i zamień** — wielkość liter, całe wyrazy, wyrażenia regularne; także we wszystkich otwartych plikach. „Zamień wszystkie” cofa jedno Ctrl+Z.
-- **Bezpieczne pliki** — atomowy zapis, zachowane końce linii i BOM, ostrzeżenie o zmianach dokonanych przez inny program; pliki spoza UTF-8 nie są otwierane, zamiast być po cichu psute.
-- **Panel plików i sesja** — drzewo folderu z filtrem; po ponownym uruchomieniu wracają otwarte pliki i pozycja kursora.
-- **Klawiatura** — konfigurowalny skrót każdego polecenia menu, Ctrl+Tab między kartami, F8 między widokami, F1 — pomoc.
-- **Automatyczne wcięcia** — po `{` i znacznikach HTML; tabulatory lub spacje, tak jak w pliku.
-- **Integracja z systemem** — wpis w menu, „Otwórz za pomocą” i na życzenie domyślny program dla HTML, CSS, JS, PHP i innych typów (tylko dla Twojego konta, odwracalnie).
-- **Interfejs po polsku**, pomoc w programie.
+- **Tabs and two views** — move a tab to the second view or clone the same document next to it.
+- **Syntax highlighting for 12 languages** — C/C++, Python, Java, JavaScript, HTML, CSS, PHP, SQL, JSON, XML, Bash and plain text; light and dark theme.
+- **Find and replace** — match case, whole words, regular expressions; also across all open files. “Replace all” is undone with a single Ctrl+Z.
+- **Safe file handling** — atomic saving, line endings and BOM preserved, a warning when another program changes the file; non-UTF-8 files are refused instead of being silently damaged.
+- **File panel and session** — folder tree with a name filter; after a restart your open files and cursor positions come back.
+- **Keyboard** — a configurable shortcut for every menu command, Ctrl+Tab between tabs, F8 between views, F1 for help.
+- **Automatic indentation** — after `{` and HTML tags; tabs or spaces, whatever the file already uses.
+- **Desktop integration** — menu entry, “Open With” and, on request, default application for HTML, CSS, JS, PHP and other types (only for your account, reversible).
+- **Polish user interface** with built-in help.
 
-### Czego tu nie ma — celowo
+### What it deliberately does not do
 
-Autouzupełniania i list podpowiedzi, podpowiedzi parametrów, sprawdzania składni i podkreślania „błędów”, LSP, uruchamiania i kompilowania plików, debuggera, asystentów AI, telemetrii i połączeń z siecią. CynamonCode koloruje składnię — piszesz Ty. To stała zasada projektu, pilnowana testami (`tests/gui/tst_editor_no_suggestions.cpp`).
+No code completion or suggestion lists, no parameter hints, no syntax checking or “error” underlines, no LSP, no running or compiling of files, no debugger, no AI assistants, no telemetry and no network connections. CynamonCode highlights syntax — you do the writing. This is a permanent rule of the project, enforced by tests (`tests/gui/tst_editor_no_suggestions.cpp`).
 
-## Instalacja
+## Installation
 
-Pakiet dla **Linux Mint 22.x** i **Ubuntu 24.04** (lub nowszych), 64-bit.
+Package for **Linux Mint 22.x** and **Ubuntu 24.04** (or newer), 64-bit.
 
-1. Pobierz `cynamoncode_1.0.0_amd64.deb` z [najnowszego wydania](https://github.com/fe-li/CynamonCode/releases/latest).
-2. Kliknij plik dwukrotnie i wybierz „Zainstaluj pakiet” — albo w terminalu:
+1. Download `cynamoncode_1.0.0_amd64.deb` from the [latest release](https://github.com/fe-li/CynamonCode/releases/latest).
+2. Double-click the file and choose “Install Package” — or in a terminal:
 
    ```bash
    sudo apt install ./cynamoncode_1.0.0_amd64.deb
    ```
 
-   Brakujące biblioteki (Qt 6, QScintilla) `apt` doinstaluje sam.
-3. Uruchom z menu: **Akcesoria → CynamonCode**, albo `cynamoncode plik.txt` w terminalu.
+   `apt` installs the missing libraries (Qt 6, QScintilla) automatically.
+3. Start it from the menu: **Accessories → CynamonCode**, or run `cynamoncode file.txt` in a terminal.
 
-Odinstalowanie: `sudo apt remove cynamoncode`. Pakiet nie zmienia domyślnych programów ani ustawień systemu. Sumy kontrolne plików wydania są w `SHA256SUMS` (`sha256sum -c SHA256SUMS`).
+Uninstall: `sudo apt remove cynamoncode`. The package does not change default applications or system settings. Release checksums are in `SHA256SUMS` (`sha256sum -c SHA256SUMS`).
 
-## Budowanie ze źródeł
+The user interface is in Polish; the main commands are in the menus *Plik* (File), *Edycja* (Edit), *Szukaj* (Search), *Widok* (View), *Język* (Language), *Ustawienia* (Settings) and *Pomoc* (Help).
 
-Wymagania (Linux Mint 22.x / Ubuntu 24.04): C++20, CMake ≥ 3.21, Ninja, Qt 6 (Core, Gui, Widgets, Test), QScintilla 2 dla Qt 6. Pakiety systemowe:
+## Building from source
+
+Requirements (Linux Mint 22.x / Ubuntu 24.04): C++20, CMake ≥ 3.21, Ninja, Qt 6 (Core, Gui, Widgets, Test), QScintilla 2 for Qt 6. System packages:
 
 ```bash
 sudo apt install build-essential cmake ninja-build git pkg-config \
@@ -69,16 +72,16 @@ sudo apt install build-essential cmake ninja-build git pkg-config \
   libqscintilla2-qt6-dev libgl-dev
 ```
 
-Budowanie, testy i uruchomienie:
+Build, test and run:
 
 ```bash
-bash scripts/bootstrap-mint.sh          # sprawdza zależności; instaluje tylko z --install i po potwierdzeniu
+bash scripts/bootstrap-mint.sh          # checks dependencies; installs only with --install after confirmation
 bash scripts/build.sh                   # Debug → build/
-bash scripts/test.sh                    # ctest (testy GUI bez ekranu: QT_QPA_PLATFORM=offscreen)
+bash scripts/test.sh                    # ctest (GUI tests without a display: QT_QPA_PLATFORM=offscreen)
 ./build/cynamoncode
 ```
 
-To samo bez skryptów:
+The same without scripts:
 
 ```bash
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON
@@ -86,7 +89,7 @@ cmake --build build --parallel
 QT_QPA_PLATFORM=offscreen ctest --test-dir build --output-on-failure
 ```
 
-Pakiet `.deb` i archiwum źródeł (CPack):
+The `.deb` package and the source archive (CPack):
 
 ```bash
 bash scripts/build.sh release
@@ -94,44 +97,34 @@ cpack --config build-release/CPackConfig.cmake -B build-release/pakiety
 cpack --config build-release/CPackSourceConfig.cmake -B build-release/pakiety
 ```
 
-Presety CMake: `debug` (katalog `build/`), `release` (`build-release/`), testowy `debug-offscreen`. Niestandardową instalację QScintilli wskażesz przez `-DQScintillaQt6_ROOT=<katalog>`. Strona www programu jest w `website/` (`bash scripts/build-website.sh`).
+CMake presets: `debug` (directory `build/`), `release` (`build-release/`) and the test preset `debug-offscreen`. Point to a custom QScintilla installation with `-DQScintillaQt6_ROOT=<directory>`. The project website is in `website/` (`bash scripts/build-website.sh`).
 
-### Typowe problemy
+### Common problems
 
-- **„Could not find the Qt platform plugin”** — brak `qt6-qpa-plugins`. Bez ekranu (SSH, CI) testy GUI uruchamiaj z `QT_QPA_PLATFORM=offscreen` (robi to `scripts/test.sh` i preset `debug-offscreen`).
-- **„Failed to find required Qt component Gui” / WrapOpenGL** — zainstaluj `libgl-dev`.
-- **„Could NOT find XKB”** — opcjonalna zależność Qt6Gui; budowanie działa bez niej (`libxkbcommon-dev` usuwa komunikat).
-- **`Qsci/qsciscintilla.h` not found** — brak `libqscintilla2-qt6-dev`; projekt wymaga wariantu Qt 6, wariant Qt 5 nie jest używany.
-- **Polskie napisy w oknach wyboru pliku i czcionki** — pakiet `qt6-translations-l10n` (pakiet `.deb` go zaleca).
+- **“Could not find the Qt platform plugin”** — `qt6-qpa-plugins` is missing. Without a display (SSH, CI) run GUI tests with `QT_QPA_PLATFORM=offscreen` (`scripts/test.sh` and the `debug-offscreen` preset do this).
+- **“Failed to find required Qt component Gui” / WrapOpenGL** — install `libgl-dev`.
+- **“Could NOT find XKB”** — an optional Qt6Gui dependency; the build works without it (`libxkbcommon-dev` removes the message).
+- **`Qsci/qsciscintilla.h` not found** — `libqscintilla2-qt6-dev` is missing; the project requires the Qt 6 variant, the Qt 5 variant is not used.
+- **Polish labels in the file and font dialogs** — package `qt6-translations-l10n` (recommended by the `.deb` package).
 
-## Struktura repozytorium
+## Repository layout
 
-| Ścieżka | Przeznaczenie |
+| Path | Purpose |
 |---|---|
-| `src/` | kod: `domain/`, `services/`, `controllers/` (bez GUI), `editor/`, `ui/`, `app/` |
-| `tests/` | testy Qt Test/CTest: `unit/`, `gui/`, `packaging/` |
-| `cmake/` | wykrywanie QScintilla Qt6, reguły instalacji, pakiet `.deb` (CPack) |
-| `packaging/` | wpis `.desktop`, metadane AppStream, strona `man`, plik `copyright` |
-| `resources/` | ikony i logo źródłowe |
-| `scripts/` | sprawdzanie zależności, budowanie, testy, ikony, strona www |
-| `website/` | strona www (PL i EN) |
-| `.github/workflows/` | CI: budowanie i testy na Ubuntu 24.04 |
-| `CHANGELOG.md` | historia zmian |
+| `src/` | code: `domain/`, `services/`, `controllers/` (no GUI), `editor/`, `ui/`, `app/` |
+| `tests/` | Qt Test/CTest tests: `unit/`, `gui/`, `packaging/` |
+| `cmake/` | QScintilla Qt6 detection, install rules, `.deb` package (CPack) |
+| `packaging/` | `.desktop` entry, AppStream metadata, `man` page, `copyright` file |
+| `resources/` | icons and source logo |
+| `scripts/` | dependency check, build, tests, icons, website |
+| `website/` | project website (Polish and English) |
+| `.github/workflows/` | CI: build and tests on Ubuntu 24.04 |
+| `CHANGELOG.md` | change history (in Polish) |
 
-## Licencja
+## License
 
 Copyright © 2026 Kamil Feliszewski
 
-CynamonCode jest wolnym oprogramowaniem: możesz je rozpowszechniać i modyfikować na warunkach **GNU General Public License w wersji 3 lub (według Twojego wyboru) dowolnej późniejszej** (SPDX: `GPL-3.0-or-later`). Program jest rozpowszechniany bez jakiejkolwiek gwarancji. Pełny tekst: [`LICENSE`](LICENSE).
+CynamonCode is free software: you can redistribute it and/or modify it under the terms of the **GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version** (SPDX: `GPL-3.0-or-later`). It is distributed without any warranty. Full text: [`LICENSE`](LICENSE).
 
-Program korzysta z Qt 6 (LGPLv3) i QScintilla (GPLv3). Projekt nie jest związany z Linux Mint ani środowiskiem Cinnamon.
-
-Kontakt: [kamil@feliszewski.pl](mailto:kamil@feliszewski.pl) · [www.feliszewski.pl](https://www.feliszewski.pl)
-
----
-
-## In English
-
-**CynamonCode** is a lightweight, native text and code editor for Linux (Qt 6, QScintilla): tabs and two views, syntax highlighting for 12 languages, find and replace (also with regular expressions and across all open files), safe atomic saving, file panel, session restore and configurable shortcuts. It deliberately has **no** code completion, linting, error underlines, LSP, code execution, AI or telemetry. The user interface is in Polish.
-
-**Download:** `cynamoncode_1.0.0_amd64.deb` from the [latest release](https://github.com/fe-li/CynamonCode/releases/latest) for Linux Mint 22.x / Ubuntu 24.04 (64-bit), then `sudo apt install ./cynamoncode_1.0.0_amd64.deb`. Build from source: see the commands above. License: GPL-3.0-or-later.
+The program uses Qt 6 (LGPLv3) and QScintilla (GPLv3). The project is not affiliated with Linux Mint or the Cinnamon desktop.
