@@ -26,7 +26,7 @@
 
 | Light theme with the file panel | Dark theme and two views |
 |---|---|
-| ![CynamonCode in the light theme: several tabs, a Python file with syntax highlighting and the file panel](website/img/zrzut-jasny.png) | ![CynamonCode in the dark theme: two views side by side with HTML and CSS files](website/img/zrzut-ciemny.png) |
+| ![CynamonCode in the light theme: several tabs, a Python file with syntax highlighting and the file panel](.github/screenshots/light-theme.png) | ![CynamonCode in the dark theme: two views side by side with HTML and CSS files](.github/screenshots/dark-theme.png) |
 
 ## Features
 
@@ -97,7 +97,7 @@ cpack --config build-release/CPackConfig.cmake -B build-release/pakiety
 cpack --config build-release/CPackSourceConfig.cmake -B build-release/pakiety
 ```
 
-CMake presets: `debug` (directory `build/`), `release` (`build-release/`) and the test preset `debug-offscreen`. Point to a custom QScintilla installation with `-DQScintillaQt6_ROOT=<directory>`. The project website is in `website/` (`bash scripts/build-website.sh`).
+CMake presets: `debug` (directory `build/`), `release` (`build-release/`) and the test preset `debug-offscreen`. Point to a custom QScintilla installation with `-DQScintillaQt6_ROOT=<directory>`.
 
 ### Common problems
 
@@ -116,8 +116,7 @@ CMake presets: `debug` (directory `build/`), `release` (`build-release/`) and th
 | `cmake/` | QScintilla Qt6 detection, install rules, `.deb` package (CPack) |
 | `packaging/` | `.desktop` entry, AppStream metadata, `man` page, `copyright` file |
 | `resources/` | icons and source logo |
-| `scripts/` | dependency check, build, tests, icons, website |
-| `website/` | project website (Polish and English) |
+| `scripts/` | dependency check, build, tests, icon generation |
 | `.github/workflows/` | CI: build and tests on Ubuntu 24.04 |
 | `CHANGELOG.md` | change history (in Polish) |
 

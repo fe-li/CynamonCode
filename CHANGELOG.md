@@ -7,11 +7,7 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/). Wersj
 ### Dodano (2026-11-08)
 
 - Repozytorium na GitHubie (github.com/fe-li/CynamonCode) z wydaniami do pobrania; README z opisem, zrzutami, instalacją i instrukcją budowania; CI (GitHub Actions, Ubuntu 24.04): build Debug i Release bez ostrzeżeń i wszystkie testy.
-- Strona www odsyła do repozytorium na GitHubie.
-
-### Dodano (2026-11-06)
-
-- Strona www programu w `website/` (polska i angielska, statyczna, bez zewnętrznych zasobów) i skrypt `scripts/build-website.sh`, który składa ją z pakietami, archiwum źródeł i sumami SHA-256 do wgrania pod `https://www.feliszewski.pl/cynamoncode/`.
+- Zrzuty ekranu programu w `.github/screenshots/` (README). Strona www programu jest prowadzona poza repozytorium.
 
 ## [1.0.0] — 2026-11-06
 

@@ -26,7 +26,7 @@
 
 | Motyw jasny z panelem plików | Motyw ciemny i dwa widoki |
 |---|---|
-| ![CynamonCode w motywie jasnym: kilka kart, plik Pythona z kolorowaniem składni i panel plików](website/img/zrzut-jasny.png) | ![CynamonCode w motywie ciemnym: dwa widoki obok siebie z plikami HTML i CSS](website/img/zrzut-ciemny.png) |
+| ![CynamonCode w motywie jasnym: kilka kart, plik Pythona z kolorowaniem składni i panel plików](.github/screenshots/light-theme.png) | ![CynamonCode w motywie ciemnym: dwa widoki obok siebie z plikami HTML i CSS](.github/screenshots/dark-theme.png) |
 
 ## Funkcje
 
@@ -95,7 +95,7 @@ cpack --config build-release/CPackConfig.cmake -B build-release/pakiety
 cpack --config build-release/CPackSourceConfig.cmake -B build-release/pakiety
 ```
 
-Presety CMake: `debug` (katalog `build/`), `release` (`build-release/`), testowy `debug-offscreen`. Niestandardową instalację QScintilli wskażesz przez `-DQScintillaQt6_ROOT=<katalog>`. Strona www programu jest w `website/` (`bash scripts/build-website.sh`).
+Presety CMake: `debug` (katalog `build/`), `release` (`build-release/`), testowy `debug-offscreen`. Niestandardową instalację QScintilli wskażesz przez `-DQScintillaQt6_ROOT=<katalog>`.
 
 ### Typowe problemy
 
@@ -114,8 +114,7 @@ Presety CMake: `debug` (katalog `build/`), `release` (`build-release/`), testowy
 | `cmake/` | wykrywanie QScintilla Qt6, reguły instalacji, pakiet `.deb` (CPack) |
 | `packaging/` | wpis `.desktop`, metadane AppStream, strona `man`, plik `copyright` |
 | `resources/` | ikony i logo źródłowe |
-| `scripts/` | sprawdzanie zależności, budowanie, testy, ikony, strona www |
-| `website/` | strona www (PL i EN) |
+| `scripts/` | sprawdzanie zależności, budowanie, testy, generowanie ikon |
 | `.github/workflows/` | CI: budowanie i testy na Ubuntu 24.04 |
 | `CHANGELOG.md` | historia zmian |
 

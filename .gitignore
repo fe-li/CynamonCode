@@ -17,3 +17,5 @@ compile_commands.json
 /START_CLAUDE.md
 /docs/
 /TASKS.md
+/website/
+/scripts/build-website.sh

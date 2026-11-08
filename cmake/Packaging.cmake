@@ -61,6 +61,8 @@ set(CPACK_SOURCE_IGNORE_FILES
     "^${_cynamoncode_source_re}/START_CLAUDE\\\\.md$"
     "^${_cynamoncode_source_re}/docs/"
     "^${_cynamoncode_source_re}/TASKS\\\\.md$"
+    "^${_cynamoncode_source_re}/website/"
+    "^${_cynamoncode_source_re}/scripts/build-website\\\\.sh$"
     "^${_cynamoncode_source_re}/\\\\.vscode/"
     "^${_cynamoncode_source_re}/\\\\.idea/"
     "^${_cynamoncode_source_re}/\\\\.cache/")
