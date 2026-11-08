@@ -1,0 +1,60 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
+# Budowanie i testy przy każdym wypchnięciu i pull requeście (Ubuntu 24.04 = baza Linux Mint 22).
+name: Budowanie i testy
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    name: Ubuntu 24.04 (Debug + Release)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Zależności (jak scripts/bootstrap-mint.sh)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build pkg-config \
+            qt6-base-dev qt6-tools-dev qt6-tools-dev-tools qt6-qpa-plugins \
+            libqscintilla2-qt6-dev libgl-dev \
+            desktop-file-utils appstream dpkg-dev
+
+      - name: Debug — konfiguracja i budowanie (ostrzeżenia = błędy)
+        run: |
+          cmake --preset debug -DCMAKE_CXX_FLAGS="-Werror"
+          cmake --build --preset debug --parallel
+
+      - name: Debug — testy
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: ctest --preset debug --output-on-failure
+
+      - name: Release — budowanie i testy
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          cmake --preset release -DCMAKE_CXX_FLAGS="-Werror"
+          cmake --build --preset release --parallel
+          ctest --preset release --output-on-failure
+
+      - name: Pakiet .deb (kontrola, bez publikacji)
+        run: |
+          cpack --config build-release/CPackConfig.cmake -B build-release/pakiety
+          dpkg-deb --info build-release/pakiety/cynamoncode_*_amd64.deb
+          dpkg-deb --contents build-release/pakiety/cynamoncode_*_amd64.deb

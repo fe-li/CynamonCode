@@ -11,6 +11,7 @@ compile_commands.json
 .idea/
 .cache/
 
-# Lokalne ustawienia Claude Code (współdzielone są tylko .claude/agents/)
-.claude/settings.local.json
-.claude/launch.json
+# Lokalne pliki asystenta Claude Code (nie są publikowane)
+/.claude/
+/CLAUDE.md
+/START_CLAUDE.md

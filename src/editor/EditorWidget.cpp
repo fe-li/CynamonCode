@@ -150,7 +150,7 @@ void EditorWidget::setLineNumbersVisible(bool visible)
 void EditorWidget::setLexer(QsciLexer *lexer)
 {
     QsciScintilla::setLexer(lexer);
-    // Lexer nie może przywrócić podpowiedzi (CLAUDE.md).
+    // Lexer nie może przywrócić podpowiedzi (SPECYFIKACJA §1.2).
     disableSuggestions();
 }
 
