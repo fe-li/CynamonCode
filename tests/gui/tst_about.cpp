@@ -110,7 +110,8 @@ void TestAbout::helpDialogListsCurrentShortcuts()
     QVERIFY(!browser->openLinks());
     const QString text = browser->toPlainText();
     QVERIFY(text.contains(QStringLiteral("UTF-8")));
-    QVERIFY(text.contains(QStringLiteral("Ctrl+N")));
+    // Zapis natywny: Ctrl+N na Linuksie i Windows, ⌘N na macOS.
+    QVERIFY(text.contains(QKeySequence(Qt::CTRL | Qt::Key_N).toString(QKeySequence::NativeText)));
     QVERIFY(text.contains(QStringLiteral("Zapisz jako")));
     QVERIFY(text.contains(AppInfo::version()));
 
@@ -122,7 +123,8 @@ void TestAbout::helpDialogListsCurrentShortcuts()
     }
     window.applyShortcuts(entries);
     helpAction->trigger();
-    QVERIFY(browser->toPlainText().contains(QStringLiteral("Alt+F7")));
+    QVERIFY(browser->toPlainText().contains(
+        QKeySequence(Qt::ALT | Qt::Key_F7).toString(QKeySequence::NativeText)));
     QCOMPARE(window.findChildren<HelpDialog *>().size(), qsizetype(1));
 }
 
