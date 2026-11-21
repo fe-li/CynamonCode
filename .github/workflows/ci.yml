@@ -113,6 +113,23 @@ jobs:
           if (-not (Get-Command makensis -ErrorAction SilentlyContinue)) { choco install nsis -y --no-progress; $env:PATH += ";${env:ProgramFiles(x86)}\NSIS" }
           cpack --config build/CPackConfig.cmake -B build/pakiety
 
+      - name: Próba pakietu .zip (bez Qt w PATH)
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem build/pakiety/*.zip | Select-Object -First 1
+          Expand-Archive $zip -DestinationPath próba
+          $exe = Get-ChildItem próba -Recurse -Filter cynamoncode.exe | Select-Object -First 1
+          foreach ($dll in "qscintilla2_qt6.dll", "Qt6Core.dll", "Qt6Widgets.dll", "vcruntime140.dll") {
+            if (-not (Test-Path (Join-Path $exe.DirectoryName $dll))) { throw "Brak $dll w pakiecie" }
+          }
+          if (-not (Get-ChildItem próba -Recurse -Filter qwindows.dll)) { throw "Brak wtyczki qwindows" }
+          if (Get-ChildItem próba -Recurse -Filter Qt6Network.dll) { throw "Qt Network nie powinno być w pakiecie" }
+          $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
+          $env:QT_COMMAND_LINE_PARSER_NO_GUI_MESSAGE_BOXES = "1"
+          $version = & $exe.FullName --version | Out-String
+          if ($version -notmatch "cynamoncode \d") { throw "Nieoczekiwana odpowiedź --version: $version" }
+          Write-Output $version
+
       - uses: actions/upload-artifact@v4
         with:
           name: windows
@@ -160,6 +177,22 @@ jobs:
         run: |
           cpack --config build/CPackConfig.cmake -B build/pakiety
           ls -la build/pakiety
+
+      - name: Próba pakietu .dmg (biblioteki w pakiecie .app)
+        run: |
+          hdiutil attach build/pakiety/*.dmg -mountpoint /tmp/cc-dmg -nobrowse -readonly
+          app=/tmp/cc-dmg/CynamonCode.app
+          ls "$app/Contents/Frameworks" "$app/Contents/PlugIns/platforms"
+          test -e "$app/Contents/Frameworks/QtCore.framework"
+          ls "$app/Contents/Frameworks" | grep -q qscintilla
+          test -e "$app/Contents/PlugIns/platforms/libqcocoa.dylib"
+          lipo -archs "$app/Contents/MacOS/CynamonCode"
+          # Żadnych odwołań do Qt z maszyny budującej.
+          if otool -L "$app/Contents/MacOS/CynamonCode" "$app"/Contents/Frameworks/*qscintilla*                | grep -E "/Users/runner|/Qt/6"; then
+            echo "Pakiet odwołuje się do bibliotek spoza .app"; exit 1
+          fi
+          env -i "$app/Contents/MacOS/CynamonCode" --version
+          hdiutil detach /tmp/cc-dmg
 
       - uses: actions/upload-artifact@v4
         with:
