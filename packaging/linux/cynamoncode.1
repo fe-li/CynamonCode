@@ -14,8 +14,9 @@ i zamianą, dwoma widokami, panelem plików i przywracaniem sesji.
 Program celowo nie podpowiada kodu, nie sprawdza jego poprawności i nie
 uruchamia otwartych plików.
 .PP
-Otwierane są wyłącznie pliki tekstowe w UTF\-8 (z BOM lub bez). Pliki w innym
-kodowaniu oraz pliki binarne nie są otwierane i pozostają nietknięte.
+Otwierane są pliki tekstowe w UTF\-8 (z BOM lub bez). Plik w innym kodowaniu
+można otworzyć jako Windows\-1250 \(em program pyta i zapisuje go z powrotem
+w tym samym kodowaniu. Pliki binarne nie są otwierane i pozostają nietknięte.
 Zapis jest atomowy, a końce linii (LF, CRLF) są zachowywane.
 .PP
 Pliki podane w wierszu poleceń otwierają się w nowych kartach, po przywróceniu

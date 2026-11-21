@@ -22,6 +22,33 @@ QString section(const QString &title, const QStringList &items)
     return html + QStringLiteral("</ul>");
 }
 
+QString settingsLocation()
+{
+#if defined(Q_OS_WIN)
+    return HelpDialog::tr("Ustawienia są zapisywane w %APPDATA%\\CynamonCode\\cynamoncode.ini.");
+#elif defined(Q_OS_MACOS)
+    return HelpDialog::tr(
+        "Ustawienia są zapisywane w ~/Library/Preferences/CynamonCode/cynamoncode.ini.");
+#else
+    return HelpDialog::tr("Ustawienia są zapisywane w ~/.config/CynamonCode/cynamoncode.conf.");
+#endif
+}
+
+QString defaultAppsHelp()
+{
+#if defined(Q_OS_WIN)
+    return HelpDialog::tr("Ustawienia → Domyślny program dla plików otwiera systemowe "
+                          "„Aplikacje domyślne”, gdzie można wybrać CynamonCode dla typu pliku.");
+#elif defined(Q_OS_MACOS)
+    return HelpDialog::tr("Domyślny program dla typu pliku wybiera się w Finderze: Pokaż "
+                          "informacje → Otwórz za pomocą → CynamonCode → Zmień wszystko.");
+#else
+    return HelpDialog::tr("Ustawienia → Domyślny program dla plików: wybrane typy (np. HTML, "
+                          "CSS, JavaScript, PHP) otwierają się dwuklikiem w CynamonCode. Dotyczy "
+                          "tylko Twojego konta; odznaczenie przywraca poprzedni program.");
+#endif
+}
+
 } // namespace
 
 HelpDialog::HelpDialog(QWidget *parent)
@@ -59,9 +86,10 @@ void HelpDialog::setShortcuts(const QList<ShortcutEntry> &entries)
 
     html += section(
         tr("Pliki"),
-        {tr("Otwierane są pliki tekstowe w UTF-8 (z BOM lub bez). Pliki w innym kodowaniu "
-            "i pliki binarne nie są otwierane — program pokazuje komunikat i niczego nie "
-            "zmienia."),
+        {tr("Otwierane są pliki tekstowe w UTF-8 (z BOM lub bez). Plik w innym kodowaniu "
+            "można otworzyć jako Windows-1250 (polskie znaki z Windows) — program pyta i "
+            "zapisuje go z powrotem w tym kodowaniu; Plik → Zapisz w kodowaniu UTF-8 zmienia "
+            "kodowanie. Pliki binarne nie są otwierane, a program niczego w nich nie zmienia."),
          tr("Zapis jest atomowy: plik na dysku zmienia się dopiero po udanym zapisie całości. "
             "Końce linii (LF, CRLF) i znacznik BOM są zachowywane."),
          tr("Gdy plik zmieni inny program, CynamonCode pyta, czy go przeładować. Zapis pliku "
@@ -86,13 +114,11 @@ void HelpDialog::setShortcuts(const QList<ShortcutEntry> &entries)
 
     html += section(
         tr("Ustawienia i sesja"),
-        {tr("Ustawienia są zapisywane w ~/.config/CynamonCode/cynamoncode.conf."),
+        {settingsLocation(),
          tr("Po ponownym uruchomieniu program przywraca otwarte pliki (bez ich treści); "
             "funkcję można wyłączyć w menu Ustawienia."),
          tr("Ustawienia → Skróty klawiszowe pozwala zmienić skrót każdego polecenia menu."),
-         tr("Ustawienia → Domyślny program dla plików: wybrane typy (np. HTML, CSS, "
-            "JavaScript, PHP) otwierają się dwuklikiem w CynamonCode. Dotyczy tylko Twojego "
-            "konta; odznaczenie przywraca poprzedni program.")});
+         defaultAppsHelp()});
 
     html += section(
         tr("Klawiatura"),

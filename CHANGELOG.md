@@ -4,6 +4,19 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/). Wersj
 
 ## [Niewydane]
 
+Wersja 1.1.0 w przygotowaniu.
+
+### Dodano (2026-11-21)
+
+- Wersje dla **Windows 10/11** (instalator `.exe` ze skrótem w menu Start i wpisami „Otwórz za pomocą”, wersja przenośna `.zip`) i **macOS 12+** (`CynamonCode.app` w `.dmg`, Apple Silicon i Intel); ikony `.ico` i `.icns`.
+- Pliki **Windows-1250**: plik spoza UTF-8 można otworzyć w tym kodowaniu po pytaniu; zapis w tym samym kodowaniu bajt w bajt; znak spoza kodowania (np. emoji) wstrzymuje zapis z pytaniem o UTF-8; Plik → „Zapisz w kodowaniu UTF-8”; kodowanie w pasku stanu i w sesji.
+- CI na Linuksie, Windows i macOS: budowanie, testy i pakiety.
+
+### Zmieniono (2026-11-21)
+
+- Windows i macOS: ustawienia w pliku INI (`%APPDATA%\CynamonCode`, `~/Library/Preferences/CynamonCode`), ścieżki porównywane bez rozróżniania wielkości liter, menu programu i otwieranie plików z Findera na macOS, „Domyślny program dla plików” otwiera ustawienia systemu (Windows) albo pokazuje instrukcję (macOS).
+- Windows: zapis ponawiany, gdy podmianę pliku na chwilę blokuje inny proces (np. skanowanie antywirusowe); obserwacja zmian plików z dodatkowym sprawdzaniem co sekundę.
+
 ### Dodano (2026-11-08)
 
 - Repozytorium na GitHubie (github.com/fe-li/CynamonCode) z wydaniami do pobrania; README z opisem, zrzutami, instalacją i instrukcją budowania; CI (GitHub Actions, Ubuntu 24.04): build Debug i Release bez ostrzeżeń i wszystkie testy.

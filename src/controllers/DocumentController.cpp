@@ -113,12 +113,12 @@ SaveOutcome DocumentController::save(DocumentId id, const QString &text, bool ov
 {
     DocumentState *document = m_documents.find(id);
     if (!document)
-        return {SaveFailure::UnknownDocument, FileError::None, {}};
+        return {SaveFailure::UnknownDocument, FileError::None, {}, -1};
     if (document->isUntitled())
-        return {SaveFailure::NoPath, FileError::None, {}};
+        return {SaveFailure::NoPath, FileError::None, {}, -1};
     // Ścieżka destrukcyjna: zawsze pełne porównanie treści (rozmiar i mtime nie wystarczą).
     if (!overwriteDiskChanges && checkDisk(id, false) == DiskStatus::Changed)
-        return {SaveFailure::DiskChanged, FileError::None, {}};
+        return {SaveFailure::DiskChanged, FileError::None, {}, -1};
     return writeDocument(*document, document->filePath, text);
 }
 
@@ -126,11 +126,11 @@ SaveOutcome DocumentController::saveAs(DocumentId id, const QString &path, const
 {
     DocumentState *document = m_documents.find(id);
     if (!document)
-        return {SaveFailure::UnknownDocument, FileError::None, {}};
+        return {SaveFailure::UnknownDocument, FileError::None, {}, -1};
 
     const QString canonical = QFileInfo(path).canonicalFilePath();
     if (const auto other = m_documents.findByCanonicalPath(canonical); other && *other != id)
-        return {SaveFailure::OpenInAnotherDocument, FileError::None, {}};
+        return {SaveFailure::OpenInAnotherDocument, FileError::None, {}, -1};
 
     return writeDocument(*document, QFileInfo(path).absoluteFilePath(), text);
 }
@@ -283,14 +283,14 @@ SaveOutcome DocumentController::writeDocument(DocumentState &document, const QSt
     const EncodeResult encoded = EncodingService::encode(text, document.encoding, document.hasBom);
     if (!encoded.ok()) {
         // Nigdy nie zapisujemy z utratą znaków — decyzję podejmuje użytkownik (D051).
-        SaveOutcome outcome{SaveFailure::NotRepresentable, FileError::None, {}};
+        SaveOutcome outcome{SaveFailure::NotRepresentable, FileError::None, {}, -1};
         outcome.unencodableAt = encoded.unencodableAt;
         return outcome;
     }
     const QByteArray &bytes = encoded.bytes;
     const FileWriteResult written = FileService::writeAtomically(path, bytes);
     if (!written.ok())
-        return {SaveFailure::File, written.error, written.systemMessage};
+        return {SaveFailure::File, written.error, written.systemMessage, -1};
 
     // Metadane zmieniamy dopiero po potwierdzonym zapisie.
     document.filePath = path;

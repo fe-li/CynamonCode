@@ -5,7 +5,7 @@
 <h1 align="center">CynamonCode</h1>
 
 <p align="center">
-  <strong>A lightweight, native text and code editor for Linux.</strong><br>
+  <strong>A lightweight, native text and code editor for Linux, Windows and macOS.</strong><br>
   Tabs, syntax highlighting and convenient search — no suggestions, no code checking, no distractions.
 </p>
 
@@ -18,7 +18,7 @@
 <p align="center"><strong>English</strong> · <a href="README.pl.md">Polski</a></p>
 
 <p align="center">
-  <a href="https://github.com/fe-li/CynamonCode/releases/latest"><strong>⬇ Download the .deb package</strong></a> ·
+  <a href="https://github.com/fe-li/CynamonCode/releases/latest"><strong>⬇ Download</strong></a> ·
   <a href="#installation">Installation</a> ·
   <a href="#features">Features</a> ·
   <a href="#building-from-source">Building</a>
@@ -33,11 +33,11 @@
 - **Tabs and two views** — move a tab to the second view or clone the same document next to it.
 - **Syntax highlighting for 12 languages** — C/C++, Python, Java, JavaScript, HTML, CSS, PHP, SQL, JSON, XML, Bash and plain text; light and dark theme.
 - **Find and replace** — match case, whole words, regular expressions; also across all open files. “Replace all” is undone with a single Ctrl+Z.
-- **Safe file handling** — atomic saving, line endings and BOM preserved, a warning when another program changes the file; non-UTF-8 files are refused instead of being silently damaged.
+- **Safe file handling** — atomic saving, line endings and BOM preserved, a warning when another program changes the file; UTF-8 and, on request, Windows-1250 files without silent byte changes.
 - **File panel and session** — folder tree with a name filter; after a restart your open files and cursor positions come back.
 - **Keyboard** — a configurable shortcut for every menu command, Ctrl+Tab between tabs, F8 between views, F1 for help.
 - **Automatic indentation** — after `{` and HTML tags; tabs or spaces, whatever the file already uses.
-- **Desktop integration** — menu entry, “Open With” and, on request, default application for HTML, CSS, JS, PHP and other types (only for your account, reversible).
+- **Desktop integration** — menu entry, “Open With” for text and source files; on Linux also a default-application setting for HTML, CSS, JS, PHP and other types (only for your account, reversible).
 - **Polish user interface** with built-in help.
 
 ### What it deliberately does not do
@@ -46,19 +46,30 @@ No code completion or suggestion lists, no parameter hints, no syntax checking o
 
 ## Installation
 
-Package for **Linux Mint 22.x** and **Ubuntu 24.04** (or newer), 64-bit.
+All files are in the [latest release](https://github.com/fe-li/CynamonCode/releases/latest); checksums are in `SHA256SUMS`.
 
-1. Download `cynamoncode_1.0.0_amd64.deb` from the [latest release](https://github.com/fe-li/CynamonCode/releases/latest).
-2. Double-click the file and choose “Install Package” — or in a terminal:
+### Linux (Mint 22.x, Ubuntu 24.04 or newer, 64-bit)
 
-   ```bash
-   sudo apt install ./cynamoncode_1.0.0_amd64.deb
-   ```
+Download `cynamoncode_1.1.0_amd64.deb`, double-click it and choose “Install Package” — or:
 
-   `apt` installs the missing libraries (Qt 6, QScintilla) automatically.
-3. Start it from the menu: **Accessories → CynamonCode**, or run `cynamoncode file.txt` in a terminal.
+```bash
+sudo apt install ./cynamoncode_1.1.0_amd64.deb
+```
 
-Uninstall: `sudo apt remove cynamoncode`. The package does not change default applications or system settings. Release checksums are in `SHA256SUMS` (`sha256sum -c SHA256SUMS`).
+`apt` installs the missing libraries (Qt 6, QScintilla). Start it from **Accessories → CynamonCode** or with `cynamoncode file.txt`. Uninstall: `sudo apt remove cynamoncode`.
+
+### Windows (10 and 11, 64-bit)
+
+- **Installer:** `CynamonCode-1.1.0-windows-x64.exe` — adds a Start menu entry, “Open with” for text and source files and an uninstaller.
+- **Portable:** `CynamonCode-1.1.0-windows-x64.zip` — unpack anywhere and run `bin\cynamoncode.exe`.
+
+The files are not code-signed, so Windows SmartScreen may show “Windows protected your PC”: choose **More info → Run anyway**.
+
+### macOS (12 Monterey or newer, Apple Silicon and Intel)
+
+Open `CynamonCode-1.1.0-macOS.dmg` and drag **CynamonCode** to **Applications**. The app is not signed by Apple, so the first start is blocked: right-click the app → **Open** → **Open** (or allow it in System Settings → Privacy & Security).
+
+None of the packages changes default applications or system settings.
 
 The user interface is in Polish; the main commands are in the menus *Plik* (File), *Edycja* (Edit), *Szukaj* (Search), *Widok* (View), *Język* (Language), *Ustawienia* (Settings) and *Pomoc* (Help).
 
@@ -81,6 +92,8 @@ bash scripts/test.sh                    # ctest (GUI tests without a display: QT
 ./build/cynamoncode
 ```
 
+On Windows and macOS: Qt 6.8 and QScintilla built from source (as in `.github/workflows/ci.yml`), then the CMake commands below with `-DCMAKE_PREFIX_PATH=<Qt directory>`; on Windows run them in a Visual Studio developer prompt.
+
 The same without scripts:
 
 ```bash
@@ -89,7 +102,7 @@ cmake --build build --parallel
 QT_QPA_PLATFORM=offscreen ctest --test-dir build --output-on-failure
 ```
 
-The `.deb` package and the source archive (CPack):
+Packages and the source archive (CPack: `.deb` on Linux, NSIS installer and `.zip` on Windows, `.dmg` on macOS):
 
 ```bash
 bash scripts/build.sh release
@@ -113,11 +126,11 @@ CMake presets: `debug` (directory `build/`), `release` (`build-release/`) and th
 |---|---|
 | `src/` | code: `domain/`, `services/`, `controllers/` (no GUI), `editor/`, `ui/`, `app/` |
 | `tests/` | Qt Test/CTest tests: `unit/`, `gui/`, `packaging/` |
-| `cmake/` | QScintilla Qt6 detection, install rules, `.deb` package (CPack) |
-| `packaging/` | `.desktop` entry, AppStream metadata, `man` page, `copyright` file |
+| `cmake/` | QScintilla Qt6 detection, install rules, packages (CPack) |
+| `packaging/` | Linux `.desktop`/AppStream/`man`, Windows resources, macOS `Info.plist` |
 | `resources/` | icons and source logo |
 | `scripts/` | dependency check, build, tests, icon generation |
-| `.github/workflows/` | CI: build and tests on Ubuntu 24.04 |
+| `.github/workflows/` | CI: build, tests and packages on Linux, Windows and macOS |
 | `CHANGELOG.md` | change history (in Polish) |
 
 ## License

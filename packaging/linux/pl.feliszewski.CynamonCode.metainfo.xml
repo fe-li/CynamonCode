@@ -65,6 +65,11 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="1.1.0" date="2026-11-21">
+      <description>
+        <p>Windows and macOS versions, Windows-1250 files opened on request and saved back in the same encoding.</p>
+      </description>
+    </release>
     <release version="1.0.0" date="2026-11-06">
       <description>
         <p>First stable release: configurable shortcuts, help, menu entry and Debian package.</p>

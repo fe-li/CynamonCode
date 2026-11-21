@@ -5,7 +5,7 @@
 <h1 align="center">CynamonCode</h1>
 
 <p align="center">
-  <strong>Lekki, natywny edytor tekstu i kodu dla Linuksa.</strong><br>
+  <strong>Lekki, natywny edytor tekstu i kodu dla Linuksa, Windows i macOS.</strong><br>
   Karty, kolorowanie składni i wygodne wyszukiwanie — bez podpowiedzi, bez sprawdzania kodu, bez rozpraszania.
 </p>
 
@@ -18,7 +18,7 @@
 <p align="center"><a href="README.md">English</a> · <strong>Polski</strong></p>
 
 <p align="center">
-  <a href="https://github.com/fe-li/CynamonCode/releases/latest"><strong>⬇ Pobierz pakiet .deb</strong></a> ·
+  <a href="https://github.com/fe-li/CynamonCode/releases/latest"><strong>⬇ Pobierz</strong></a> ·
   <a href="#instalacja">Instalacja</a> ·
   <a href="#funkcje">Funkcje</a> ·
   <a href="#budowanie-ze-źródeł">Budowanie</a>
@@ -33,11 +33,11 @@
 - **Karty i dwa widoki** — przenoszenie karty do drugiego widoku albo klon tego samego dokumentu obok.
 - **Kolorowanie składni 12 języków** — C/C++, Python, Java, JavaScript, HTML, CSS, PHP, SQL, JSON, XML, Bash i zwykły tekst; motyw jasny i ciemny.
 - **Znajdź i zamień** — wielkość liter, całe wyrazy, wyrażenia regularne; także we wszystkich otwartych plikach. „Zamień wszystkie” cofa jedno Ctrl+Z.
-- **Bezpieczne pliki** — atomowy zapis, zachowane końce linii i BOM, ostrzeżenie o zmianach dokonanych przez inny program; pliki spoza UTF-8 nie są otwierane, zamiast być po cichu psute.
+- **Bezpieczne pliki** — atomowy zapis, zachowane końce linii i BOM, ostrzeżenie o zmianach dokonanych przez inny program; UTF-8 i na życzenie Windows-1250, bez cichych zmian bajtów.
 - **Panel plików i sesja** — drzewo folderu z filtrem; po ponownym uruchomieniu wracają otwarte pliki i pozycja kursora.
 - **Klawiatura** — konfigurowalny skrót każdego polecenia menu, Ctrl+Tab między kartami, F8 między widokami, F1 — pomoc.
 - **Automatyczne wcięcia** — po `{` i znacznikach HTML; tabulatory lub spacje, tak jak w pliku.
-- **Integracja z systemem** — wpis w menu, „Otwórz za pomocą” i na życzenie domyślny program dla HTML, CSS, JS, PHP i innych typów (tylko dla Twojego konta, odwracalnie).
+- **Integracja z systemem** — wpis w menu, „Otwórz za pomocą” dla plików tekstowych i kodu; na Linuksie także domyślny program dla HTML, CSS, JS, PHP i innych typów (tylko dla Twojego konta, odwracalnie).
 - **Interfejs po polsku**, pomoc w programie.
 
 ### Czego tu nie ma — celowo
@@ -46,19 +46,30 @@ Autouzupełniania i list podpowiedzi, podpowiedzi parametrów, sprawdzania skła
 
 ## Instalacja
 
-Pakiet dla **Linux Mint 22.x** i **Ubuntu 24.04** (lub nowszych), 64-bit.
+Wszystkie pliki są w [najnowszym wydaniu](https://github.com/fe-li/CynamonCode/releases/latest); sumy kontrolne w `SHA256SUMS`.
 
-1. Pobierz `cynamoncode_1.0.0_amd64.deb` z [najnowszego wydania](https://github.com/fe-li/CynamonCode/releases/latest).
-2. Kliknij plik dwukrotnie i wybierz „Zainstaluj pakiet” — albo w terminalu:
+### Linux (Mint 22.x, Ubuntu 24.04 lub nowsze, 64-bit)
 
-   ```bash
-   sudo apt install ./cynamoncode_1.0.0_amd64.deb
-   ```
+Pobierz `cynamoncode_1.1.0_amd64.deb`, kliknij dwukrotnie i wybierz „Zainstaluj pakiet” — albo:
 
-   Brakujące biblioteki (Qt 6, QScintilla) `apt` doinstaluje sam.
-3. Uruchom z menu: **Akcesoria → CynamonCode**, albo `cynamoncode plik.txt` w terminalu.
+```bash
+sudo apt install ./cynamoncode_1.1.0_amd64.deb
+```
 
-Odinstalowanie: `sudo apt remove cynamoncode`. Pakiet nie zmienia domyślnych programów ani ustawień systemu. Sumy kontrolne plików wydania są w `SHA256SUMS` (`sha256sum -c SHA256SUMS`).
+`apt` doinstaluje brakujące biblioteki (Qt 6, QScintilla). Uruchom z menu **Akcesoria → CynamonCode** albo `cynamoncode plik.txt`. Odinstalowanie: `sudo apt remove cynamoncode`.
+
+### Windows (10 i 11, 64-bit)
+
+- **Instalator:** `CynamonCode-1.1.0-windows-x64.exe` — skrót w menu Start, „Otwórz za pomocą” dla plików tekstowych i kodu, deinstalator.
+- **Wersja przenośna:** `CynamonCode-1.1.0-windows-x64.zip` — rozpakuj w dowolnym miejscu i uruchom `bin\cynamoncode.exe`.
+
+Pliki nie mają podpisu cyfrowego, więc Windows SmartScreen może pokazać „System Windows ochronił ten komputer”: wybierz **Więcej informacji → Uruchom mimo to**.
+
+### macOS (12 Monterey lub nowszy, Apple Silicon i Intel)
+
+Otwórz `CynamonCode-1.1.0-macOS.dmg` i przeciągnij **CynamonCode** do **Programy**. Aplikacja nie jest podpisana przez Apple, więc pierwsze uruchomienie zostanie zablokowane: kliknij aplikację prawym przyciskiem → **Otwórz** → **Otwórz** (albo zezwól w Ustawieniach systemowych → Prywatność i ochrona).
+
+Żaden pakiet nie zmienia domyślnych programów ani ustawień systemu.
 
 ## Budowanie ze źródeł
 
@@ -79,6 +90,8 @@ bash scripts/test.sh                    # ctest (testy GUI bez ekranu: QT_QPA_PL
 ./build/cynamoncode
 ```
 
+Na Windows i macOS: Qt 6.8 i QScintilla zbudowana ze źródeł (jak w `.github/workflows/ci.yml`), potem poniższe polecenia CMake z `-DCMAKE_PREFIX_PATH=<katalog Qt>`; na Windows w wierszu poleceń dewelopera Visual Studio.
+
 To samo bez skryptów:
 
 ```bash
@@ -87,7 +100,7 @@ cmake --build build --parallel
 QT_QPA_PLATFORM=offscreen ctest --test-dir build --output-on-failure
 ```
 
-Pakiet `.deb` i archiwum źródeł (CPack):
+Pakiety i archiwum źródeł (CPack: `.deb` na Linuksie, instalator NSIS i `.zip` na Windows, `.dmg` na macOS):
 
 ```bash
 bash scripts/build.sh release
@@ -111,11 +124,11 @@ Presety CMake: `debug` (katalog `build/`), `release` (`build-release/`), testowy
 |---|---|
 | `src/` | kod: `domain/`, `services/`, `controllers/` (bez GUI), `editor/`, `ui/`, `app/` |
 | `tests/` | testy Qt Test/CTest: `unit/`, `gui/`, `packaging/` |
-| `cmake/` | wykrywanie QScintilla Qt6, reguły instalacji, pakiet `.deb` (CPack) |
-| `packaging/` | wpis `.desktop`, metadane AppStream, strona `man`, plik `copyright` |
+| `cmake/` | wykrywanie QScintilla Qt6, reguły instalacji, pakiety (CPack) |
+| `packaging/` | Linux: `.desktop`, AppStream, `man`; zasoby Windows; `Info.plist` macOS |
 | `resources/` | ikony i logo źródłowe |
 | `scripts/` | sprawdzanie zależności, budowanie, testy, generowanie ikon |
-| `.github/workflows/` | CI: budowanie i testy na Ubuntu 24.04 |
+| `.github/workflows/` | CI: budowanie, testy i pakiety na Linuksie, Windows i macOS |
 | `CHANGELOG.md` | historia zmian |
 
 ## Licencja
