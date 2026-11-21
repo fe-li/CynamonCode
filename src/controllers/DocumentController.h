@@ -22,6 +22,7 @@ enum class OpenFailure {
     File,        // szczegóły w fileError / systemMessage
     Binary,      // bajty NUL
     InvalidUtf8,
+    NotWindows1250, // otwierany jako Windows-1250, a zawiera bajt niezdefiniowany
 };
 
 struct OpenOutcome
@@ -40,6 +41,7 @@ enum class SaveFailure {
     NoPath,                // dokument bez pliku — potrzebne „Zapisz jako”
     OpenInAnotherDocument, // docelowy plik jest otwarty w innej karcie
     DiskChanged,           // plik na dysku zmienił się od wczytania/zapisu (D027)
+    NotRepresentable,      // znak spoza kodowania pliku (unencodableAt); plik nietknięty
     File,                  // szczegóły w fileError / systemMessage
 };
 
@@ -54,6 +56,7 @@ struct SaveOutcome
     SaveFailure failure = SaveFailure::None;
     FileError fileError = FileError::None;
     QString systemMessage;
+    qsizetype unencodableAt = -1; // NotRepresentable: pozycja znaku w tekście
 
     bool ok() const { return failure == SaveFailure::None; }
 };
@@ -67,7 +70,8 @@ public:
     static constexpr qint64 LargeFileWarningBytes = 20LL * 1024 * 1024;
 
     DocumentId createNew();
-    OpenOutcome open(const QString &path);
+    // Windows-1250 tylko na wyraźny wybór użytkownika (D051).
+    OpenOutcome open(const QString &path, TextEncoding encoding = TextEncoding::Utf8);
     // Bez `overwriteDiskChanges` zapis odmawia (DiskChanged), gdy plik na dysku
     // zmienił się od ostatniego wczytania lub zapisu (D027).
     SaveOutcome save(DocumentId id, const QString &text, bool overwriteDiskChanges = false);
@@ -100,6 +104,11 @@ public:
     void setLanguage(DocumentId id, LanguageId language);
     // Po świadomym ujednoliceniu końców linii przez użytkownika (D020).
     void setLineEnding(DocumentId id, LineEnding lineEnding);
+    // Kodowanie kolejnych zapisów (np. przejście z Windows-1250 na UTF-8, D051).
+    void setEncoding(DocumentId id, TextEncoding encoding);
+    // Pozycja pierwszego znaku, którego nie da się zapisać w kodowaniu dokumentu;
+    // -1 = cały tekst da się zapisać.
+    qsizetype firstUnencodable(DocumentId id, const QString &text) const;
 
     const DocumentState *document(DocumentId id) const { return m_documents.find(id); }
     // Dokument otwarty pod tą ścieżką (porównanie ścieżek kanonicznych).

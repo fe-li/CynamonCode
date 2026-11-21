@@ -17,7 +17,7 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
-#include <unistd.h>
+#include "../TestPlatform.h"
 
 #include <memory>
 #include <optional>
@@ -298,8 +298,8 @@ void TestTabs::invalidFileIsRefusedWithMessage()
 
 void TestTabs::failedSaveKeepsModifiedAndBlocksClose()
 {
-    if (::geteuid() == 0)
-        QSKIP("Użytkownik root omija prawa dostępu.");
+    if (!cynamoncode::testing::permissionsEnforced())
+        QSKIP("Prawa dostępu nie blokują zapisu (root albo Windows).");
 
     QTemporaryDir dir;
     const QString path = dir.filePath(QStringLiteral("tylko-odczyt.txt"));

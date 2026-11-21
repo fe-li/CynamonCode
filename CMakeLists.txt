@@ -4,7 +4,7 @@
 cmake_minimum_required(VERSION 3.21)
 
 project(CynamonCode
-    VERSION 1.0.0
+    VERSION 1.1.0
     DESCRIPTION "Lekki edytor tekstu i kodu dla Linuksa"
     HOMEPAGE_URL "https://www.feliszewski.pl"
     LANGUAGES CXX)
@@ -48,6 +48,7 @@ add_library(cynamoncode_core STATIC
     src/domain/LanguageId.h
     src/domain/LineEnding.h
     src/domain/SearchOptions.h
+    src/domain/TextEncoding.h
     src/services/EncodingService.cpp
     src/services/EncodingService.h
     src/services/FileService.cpp
@@ -62,6 +63,7 @@ add_library(cynamoncode_core STATIC
     src/services/LanguageRegistry.h
     src/services/MimeAppsService.cpp
     src/services/MimeAppsService.h
+    src/services/PathCompare.h
     src/services/SearchService.cpp
     src/services/SearchService.h
     src/services/SessionService.cpp
@@ -112,8 +114,33 @@ target_link_libraries(cynamoncode_ui
     PUBLIC cynamoncode_core Qt6::Widgets QScintilla::QScintilla
     PRIVATE cynamoncode_warnings)
 
-add_executable(cynamoncode src/main.cpp)
+# Program: na Windows aplikacja okienkowa (bez konsoli) z ikoną i wersją w zasobach,
+# na macOS pakiet CynamonCode.app z Info.plist (typy plików, ikona .icns).
+set(CYNAMONCODE_PLATFORM_SOURCES "")
+if(WIN32)
+    configure_file(packaging/windows/cynamoncode.rc.in
+        "${CMAKE_CURRENT_BINARY_DIR}/cynamoncode.rc" @ONLY)
+    list(APPEND CYNAMONCODE_PLATFORM_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/cynamoncode.rc")
+elseif(APPLE)
+    set(_cynamoncode_icns "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/cynamoncode.icns")
+    set_source_files_properties("${_cynamoncode_icns}" PROPERTIES
+        MACOSX_PACKAGE_LOCATION Resources)
+    list(APPEND CYNAMONCODE_PLATFORM_SOURCES "${_cynamoncode_icns}")
+endif()
+
+add_executable(cynamoncode WIN32 MACOSX_BUNDLE src/main.cpp ${CYNAMONCODE_PLATFORM_SOURCES})
 target_link_libraries(cynamoncode PRIVATE cynamoncode_ui cynamoncode_warnings)
+if(APPLE)
+    set_target_properties(cynamoncode PROPERTIES
+        OUTPUT_NAME CynamonCode
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/packaging/macos/Info.plist.in"
+        MACOSX_BUNDLE_BUNDLE_NAME CynamonCode
+        MACOSX_BUNDLE_GUI_IDENTIFIER "${CYNAMONCODE_APP_ID}"
+        MACOSX_BUNDLE_ICON_FILE cynamoncode.icns
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_COPYRIGHT "© 2026 Kamil Feliszewski, GPL-3.0-or-later")
+endif()
 
 include(cmake/Install.cmake)
 

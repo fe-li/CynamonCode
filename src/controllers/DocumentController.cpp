@@ -50,12 +50,26 @@ QDateTime modifiedTime(const QString &path)
 
 } // namespace
 
+static OpenFailure openFailureOf(DecodeError error)
+{
+    switch (error) {
+    case DecodeError::ContainsNul:
+        return OpenFailure::Binary;
+    case DecodeError::NotWindows1250:
+        return OpenFailure::NotWindows1250;
+    case DecodeError::InvalidUtf8:
+    case DecodeError::None:
+        break;
+    }
+    return OpenFailure::InvalidUtf8;
+}
+
 DocumentId DocumentController::createNew()
 {
     return m_documents.createUntitled();
 }
 
-OpenOutcome DocumentController::open(const QString &path)
+OpenOutcome DocumentController::open(const QString &path, TextEncoding encoding)
 {
     OpenOutcome outcome;
     const QFileInfo info(path);
@@ -76,10 +90,9 @@ OpenOutcome DocumentController::open(const QString &path)
         return outcome;
     }
 
-    DecodeResult decoded = EncodingService::decodeUtf8(read.data);
+    DecodeResult decoded = EncodingService::decode(read.data, encoding);
     if (!decoded.ok()) {
-        outcome.failure = decoded.error == DecodeError::ContainsNul ? OpenFailure::Binary
-                                                                     : OpenFailure::InvalidUtf8;
+        outcome.failure = openFailureOf(decoded.error);
         return outcome;
     }
 
@@ -87,6 +100,7 @@ OpenOutcome DocumentController::open(const QString &path)
     outcome.id = m_documents.addFile(info.absoluteFilePath(), canonical, decoded.hasBom,
                                      decoded.lineEnding);
     if (DocumentState *document = m_documents.find(outcome.id)) {
+        document->encoding = encoding;
         document->language = LanguageRegistry::detect(path, firstLine(decoded.text));
         document->indentWithTabs = Indentation::usesTabs(decoded.text);
         document->disk = snapshotOf(read.data, modifiedBeforeRead);
@@ -195,10 +209,9 @@ DocumentController::ReloadData DocumentController::prepareReload(DocumentId id) 
         data.outcome.systemMessage = read.systemMessage;
         return data;
     }
-    DecodeResult decoded = EncodingService::decodeUtf8(read.data);
+    DecodeResult decoded = EncodingService::decode(read.data, document->encoding);
     if (!decoded.ok()) {
-        data.outcome.failure = decoded.error == DecodeError::ContainsNul ? OpenFailure::Binary
-                                                                          : OpenFailure::InvalidUtf8;
+        data.outcome.failure = openFailureOf(decoded.error);
         return data;
     }
 
@@ -247,10 +260,34 @@ void DocumentController::setLineEnding(DocumentId id, LineEnding lineEnding)
         document->lineEnding = lineEnding;
 }
 
+void DocumentController::setEncoding(DocumentId id, TextEncoding encoding)
+{
+    if (DocumentState *document = m_documents.find(id)) {
+        document->encoding = encoding;
+        if (encoding != TextEncoding::Utf8)
+            document->hasBom = false; // BOM istnieje tylko w UTF-8
+    }
+}
+
+qsizetype DocumentController::firstUnencodable(DocumentId id, const QString &text) const
+{
+    const DocumentState *document = m_documents.find(id);
+    if (!document)
+        return -1;
+    return EncodingService::encode(text, document->encoding, document->hasBom).unencodableAt;
+}
+
 SaveOutcome DocumentController::writeDocument(DocumentState &document, const QString &path,
                                               const QString &text)
 {
-    const QByteArray bytes = EncodingService::encodeUtf8(text, document.hasBom);
+    const EncodeResult encoded = EncodingService::encode(text, document.encoding, document.hasBom);
+    if (!encoded.ok()) {
+        // Nigdy nie zapisujemy z utratą znaków — decyzję podejmuje użytkownik (D051).
+        SaveOutcome outcome{SaveFailure::NotRepresentable, FileError::None, {}};
+        outcome.unencodableAt = encoded.unencodableAt;
+        return outcome;
+    }
+    const QByteArray &bytes = encoded.bytes;
     const FileWriteResult written = FileService::writeAtomically(path, bytes);
     if (!written.ok())
         return {SaveFailure::File, written.error, written.systemMessage};

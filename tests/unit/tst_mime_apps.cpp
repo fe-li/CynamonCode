@@ -12,7 +12,7 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
-#include <unistd.h>
+#include "../TestPlatform.h"
 
 using namespace cynamoncode;
 
@@ -235,6 +235,8 @@ void TestMimeApps::refusesInvalidUtf8AndKeepsBom()
 
 void TestMimeApps::keepsSymlinkAndPermissions()
 {
+    if (!cynamoncode::testing::symlinksAvailable())
+        QSKIP("Dowiązania i prawa POSIX tylko na Uniksie.");
     QTemporaryDir dir;
     const QString target = dir.filePath(QStringLiteral("dotfiles/mimeapps.list"));
     const QString link = dir.filePath(QStringLiteral("mimeapps.list"));
@@ -261,6 +263,9 @@ void TestMimeApps::disableWithoutEntryChangesNothing()
 
 void TestMimeApps::userFilesFollowXdgVariables()
 {
+#ifndef Q_OS_LINUX
+    QSKIP("Zmienne XDG i mimeapps.list dotyczą tylko Linuksa.");
+#endif
     QTemporaryDir dir;
     const QByteArray oldConfig = qgetenv("XDG_CONFIG_HOME");
     const QByteArray oldDesktop = qgetenv("XDG_CURRENT_DESKTOP");
@@ -325,8 +330,8 @@ void TestMimeApps::desktopSpecificFileHasPriority()
 
 void TestMimeApps::applyReportsWriteError()
 {
-    if (::geteuid() == 0)
-        QSKIP("root pomija uprawnienia katalogu");
+    if (!cynamoncode::testing::permissionsEnforced())
+        QSKIP("Prawa dostępu nie blokują zapisu (root albo Windows).");
     QTemporaryDir dir;
     const QString locked = dir.filePath(QStringLiteral("zablokowany"));
     QVERIFY(QDir().mkpath(locked));

@@ -18,7 +18,8 @@ Session sample()
 {
     Session session;
     session.panes[0].tabs = {{QStringLiteral("/home/kamil/a.cpp"), 10, 4, 3, QString()},
-                             {QStringLiteral("/home/kamil/łódź.py"), 0, 0, 0, QStringLiteral("sql")}};
+                             {QStringLiteral("/home/kamil/łódź.py"), 0, 0, 0, QStringLiteral("sql"),
+                              QStringLiteral("windows-1250")}};
     session.panes[0].current = 1;
     session.panes[1].tabs = {{QStringLiteral("/home/kamil/a.cpp"), 200, 0, 180, QString()}};
     session.panes[1].current = 0;

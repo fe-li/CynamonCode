@@ -20,6 +20,7 @@ struct SessionTab
     int index = 0;
     int firstVisibleLine = 0;
     QString languageKey; // ręcznie wybrany język (LanguageRegistry::key); pusty = wykrywanie
+    QString encodingKey; // kodowanie inne niż UTF-8 (textEncodingKey); pusty = UTF-8
 
     friend bool operator==(const SessionTab &, const SessionTab &) = default;
 };

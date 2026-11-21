@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # SPDX-FileCopyrightText: 2026 Kamil Feliszewski
 
-# Budowanie i testy przy każdym wypchnięciu i pull requeście (Ubuntu 24.04 = baza Linux Mint 22).
+# Budowanie, testy i pakiety na Linuksie (Ubuntu 24.04 = baza Linux Mint 22),
+# Windows i macOS przy każdym wypchnięciu i pull requeście.
 name: Budowanie i testy
 
 on:
@@ -18,9 +19,14 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  QT_VERSION: "6.8.3"
+  QSCINTILLA_VERSION: "2.14.1"
+  QSCINTILLA_SHA256: "dfe13c6acc9d85dfcba76ccc8061e71a223957a6c02f3c343b30a9d43a4cdd4d"
+
 jobs:
   linux:
-    name: Ubuntu 24.04 (Debug + Release)
+    name: Linux (Ubuntu 24.04)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -35,15 +41,13 @@ jobs:
             libqscintilla2-qt6-dev libgl-dev \
             desktop-file-utils appstream dpkg-dev
 
-      - name: Debug — konfiguracja i budowanie (ostrzeżenia = błędy)
+      - name: Debug — budowanie (ostrzeżenia = błędy) i testy
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: |
           cmake --preset debug -DCMAKE_CXX_FLAGS="-Werror"
           cmake --build --preset debug --parallel
-
-      - name: Debug — testy
-        env:
-          QT_QPA_PLATFORM: offscreen
-        run: ctest --preset debug --output-on-failure
+          ctest --preset debug --output-on-failure
 
       - name: Release — budowanie i testy
         env:
@@ -53,8 +57,112 @@ jobs:
           cmake --build --preset release --parallel
           ctest --preset release --output-on-failure
 
-      - name: Pakiet .deb (kontrola, bez publikacji)
+      - name: Pakiet .deb
         run: |
           cpack --config build-release/CPackConfig.cmake -B build-release/pakiety
           dpkg-deb --info build-release/pakiety/cynamoncode_*_amd64.deb
-          dpkg-deb --contents build-release/pakiety/cynamoncode_*_amd64.deb
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-deb
+          path: build-release/pakiety/*.deb
+          if-no-files-found: error
+
+  windows:
+    name: Windows (x64)
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: win64_msvc2022_64
+          cache: true
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: QScintilla ${{ env.QSCINTILLA_VERSION }} ze źródeł (Debug i Release)
+        shell: pwsh
+        run: |
+          $name = "QScintilla_src-$env:QSCINTILLA_VERSION"
+          Invoke-WebRequest "https://www.riverbankcomputing.com/static/Downloads/QScintilla/$env:QSCINTILLA_VERSION/$name.tar.gz" -OutFile "$name.tar.gz"
+          if ((Get-FileHash "$name.tar.gz" -Algorithm SHA256).Hash -ne $env:QSCINTILLA_SHA256) { throw "Niezgodna suma SHA-256 źródeł QScintilli" }
+          tar -xzf "$name.tar.gz"
+          Push-Location "$name/src"
+          qmake CONFIG+=debug_and_release CONFIG+=build_all qscintilla.pro
+          nmake /nologo
+          nmake /nologo install
+          Pop-Location
+
+      - name: Budowanie i testy (Release)
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+          cmake --build build --parallel
+          ctest --test-dir build --output-on-failure -j2
+
+      - name: Pakiety (instalator NSIS i .zip)
+        shell: pwsh
+        run: |
+          if (-not (Get-Command makensis -ErrorAction SilentlyContinue)) { choco install nsis -y --no-progress; $env:PATH += ";${env:ProgramFiles(x86)}\NSIS" }
+          cpack --config build/CPackConfig.cmake -B build/pakiety
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            build/pakiety/*.exe
+            build/pakiety/*.zip
+            build/pakiety/_CPack_Packages/win64/NSIS/project.nsi
+          if-no-files-found: error
+
+  macos:
+    name: macOS (Apple Silicon i Intel)
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: clang_64
+          cache: true
+
+      - name: QScintilla ${{ env.QSCINTILLA_VERSION }} ze źródeł (uniwersalna)
+        run: |
+          name="QScintilla_src-${QSCINTILLA_VERSION}"
+          curl -sSfL -o "$name.tar.gz" "https://www.riverbankcomputing.com/static/Downloads/QScintilla/${QSCINTILLA_VERSION}/$name.tar.gz"
+          echo "${QSCINTILLA_SHA256}  $name.tar.gz" | shasum -a 256 -c -
+          tar -xzf "$name.tar.gz"
+          cd "$name/src"
+          qmake QMAKE_APPLE_DEVICE_ARCHS="x86_64 arm64" qscintilla.pro
+          make -j3
+          make install
+
+      - name: Budowanie i testy (Release)
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_CXX_FLAGS="-Werror"
+          cmake --build build --parallel
+          ctest --test-dir build --output-on-failure -j2
+
+      - name: Pakiet .dmg
+        run: |
+          cpack --config build/CPackConfig.cmake -B build/pakiety
+          ls -la build/pakiety
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: build/pakiety/*.dmg
+          if-no-files-found: error

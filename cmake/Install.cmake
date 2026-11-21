@@ -1,8 +1,52 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # SPDX-FileCopyrightText: 2026 Kamil Feliszewski
 
-# Reguły instalacji (D044). Pakiet .deb: prefiks /usr (cmake/Packaging.cmake);
-# „cmake --install” bez pakietu domyślnie instaluje do /usr/local.
+# Reguły instalacji. Linux: układ FHS dla pakietu .deb (prefiks /usr, D044);
+# Windows i macOS: program z bibliotekami Qt i QScintilli (D050).
+
+if(WIN32)
+    # <prefiks>/bin/cynamoncode.exe z bibliotekami DLL i wtyczkami Qt obok.
+    install(TARGETS cynamoncode RUNTIME DESTINATION bin)
+    install(FILES LICENSE DESTINATION . RENAME LICENSE.txt)
+    # windeployqt przez skrypt Qt; DLL QScintilli analizowana razem z programem
+    # (zależy od Qt PrintSupport, którego program nie używa bezpośrednio).
+    qt_generate_deploy_script(
+        TARGET cynamoncode
+        OUTPUT_SCRIPT _cynamoncode_deploy_script
+        CONTENT "
+qt_deploy_runtime_dependencies(
+    EXECUTABLE \"bin/$<TARGET_FILE_NAME:cynamoncode>\"
+    ADDITIONAL_LIBRARIES \"$<IF:$<CONFIG:Debug>,${QScintillaQt6_DLL_DEBUG},${QScintillaQt6_DLL_RELEASE}>\"
+    GENERATE_QT_CONF
+    NO_COMPILER_RUNTIME
+    DEPLOY_TOOL_OPTIONS --no-opengl-sw --no-system-d3d-compiler --no-system-dxc-compiler
+        --skip-plugin-types tls,networkinformation,generic --translations pl
+)")
+    install(SCRIPT "${_cynamoncode_deploy_script}")
+    # windeployqt analizuje DLL QScintilli, ale jej nie kopiuje.
+    install(FILES "$<IF:$<CONFIG:Debug>,${QScintillaQt6_DLL_DEBUG},${QScintillaQt6_DLL_RELEASE}>"
+        DESTINATION bin)
+    # Biblioteki uruchomieniowe MSVC (vcruntime, msvcp) obok programu — bez
+    # osobnego instalatora Visual C++ Redistributable.
+    set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION bin)
+    set(CMAKE_INSTALL_UCRT_LIBRARIES FALSE)
+    include(InstallRequiredSystemLibraries)
+    return()
+elseif(APPLE)
+    install(TARGETS cynamoncode BUNDLE DESTINATION .)
+    # macdeployqt przez skrypt Qt: frameworki Qt i biblioteka QScintilli w pakiecie .app.
+    qt_generate_deploy_script(
+        TARGET cynamoncode
+        OUTPUT_SCRIPT _cynamoncode_deploy_script
+        CONTENT "
+qt_deploy_runtime_dependencies(
+    EXECUTABLE \"CynamonCode.app\"
+    ADDITIONAL_LIBRARIES \"${QScintillaQt6_LIBRARY_RELEASE}\"
+    GENERATE_QT_CONF
+)")
+    install(SCRIPT "${_cynamoncode_deploy_script}")
+    return()
+endif()
 
 set(CYNAMONCODE_DOCDIR "${CMAKE_INSTALL_DATAROOTDIR}/doc/cynamoncode")
 

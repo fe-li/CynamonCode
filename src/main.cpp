@@ -12,10 +12,12 @@
 #include <QLocale>
 #include <QSettings>
 #include <QStringList>
+#include <QFileOpenEvent>
 #include <QTranslator>
 
 #include <cstring>
 #include <memory>
+#include <utility>
 
 namespace {
 
@@ -24,9 +26,15 @@ namespace {
 // (pakiet qt6-translations-l10n).
 void installQtTranslator(QTranslator &translator)
 {
-    if (translator.load(QLocale(QLocale::Polish, QLocale::Poland), QStringLiteral("qtbase"),
-                        QStringLiteral("_"), QLibraryInfo::path(QLibraryInfo::TranslationsPath))) {
-        QCoreApplication::installTranslator(&translator);
+    // „qt_pl” to katalog zbiorczy (Windows i macOS po windeployqt/macdeployqt,
+    // Linux — qt6-translations-l10n); „qtbase_pl” — gdy jest tylko moduł podstawowy.
+    const QString directory = QLibraryInfo::path(QLibraryInfo::TranslationsPath);
+    const QLocale polish(QLocale::Polish, QLocale::Poland);
+    for (const QString &catalog : {QStringLiteral("qt"), QStringLiteral("qtbase")}) {
+        if (translator.load(polish, catalog, QStringLiteral("_"), directory)) {
+            QCoreApplication::installTranslator(&translator);
+            return;
+        }
     }
 }
 
@@ -77,6 +85,33 @@ bool asksForTextOutput(int argc, char *argv[])
     return false;
 }
 
+// macOS: Finder („Otwórz za pomocą”, przeciągnięcie na ikonę) przekazuje pliki
+// zdarzeniem FileOpen, nie w argumentach programu.
+class FileOpenFilter final : public QObject
+{
+public:
+    explicit FileOpenFilter(cynamoncode::MainWindow &window)
+        : m_window(window)
+    {
+    }
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override
+    {
+        if (event->type() == QEvent::FileOpen) {
+            const QString file = static_cast<QFileOpenEvent *>(event)->file();
+            if (!file.isEmpty()) {
+                m_window.openFile(file);
+                return true;
+            }
+        }
+        return QObject::eventFilter(watched, event);
+    }
+
+private:
+    cynamoncode::MainWindow &m_window;
+};
+
 } // namespace
 
 int main(int argc, char *argv[])
@@ -107,7 +142,18 @@ int main(int argc, char *argv[])
 
     QApplication::setWindowIcon(cynamoncode::applicationIcon());
 
-    cynamoncode::MainWindow window({}, std::make_unique<QSettings>());
+    // Ustawienia w pliku INI na każdym systemie (D053): Linux — ~/.config/CynamonCode/
+    // cynamoncode.conf (format natywny), Windows — %APPDATA%\CynamonCode\cynamoncode.ini
+    // zamiast rejestru, macOS — ~/Library/Preferences/CynamonCode/cynamoncode.ini.
+    // Plik sesji leży obok pliku ustawień.
+#if defined(Q_OS_WIN) || defined(Q_OS_MACOS)
+    auto settings = std::make_unique<QSettings>(QSettings::IniFormat, QSettings::UserScope,
+                                                QCoreApplication::organizationName(),
+                                                QCoreApplication::applicationName());
+#else
+    auto settings = std::make_unique<QSettings>();
+#endif
+    cynamoncode::MainWindow window({}, std::move(settings));
     window.show();
 
     // Najpierw poprzednia sesja (D034), potem pliki z wiersza poleceń.
@@ -115,6 +161,9 @@ int main(int argc, char *argv[])
     const QStringList files = commandLine.parser.positionalArguments();
     for (const QString &path : files)
         window.openFile(path);
+
+    FileOpenFilter fileOpenFilter(window);
+    app.installEventFilter(&fileOpenFilter);
 
     return QApplication::exec();
 }

@@ -5,6 +5,7 @@
 
 #include "domain/LanguageId.h"
 #include "domain/LineEnding.h"
+#include "domain/TextEncoding.h"
 
 #include <QByteArray>
 #include <QDateTime>
@@ -33,7 +34,8 @@ struct DocumentState
     QString filePath;       // ścieżka bezwzględna podana przez użytkownika; pusta dla nowego dokumentu
     QString canonicalPath;  // do wykrywania duplikatów kart; pusta, dopóki plik nie istnieje
     int untitledNumber = 0; // numer „Nowy N” dla dokumentu bez pliku
-    bool hasBom = false;
+    TextEncoding encoding = TextEncoding::Utf8; // kodowanie pliku na dysku (D051)
+    bool hasBom = false;                        // tylko UTF-8
     LineEnding lineEnding = LineEnding::None;
     LanguageId language = LanguageId::Plain;
     bool languageChosenManually = false; // ręczny wybór ma pierwszeństwo (D023)

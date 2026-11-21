@@ -12,15 +12,16 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
-#include <unistd.h>
+#include "../TestPlatform.h"
 
 using namespace cynamoncode;
 
 namespace {
 
+// Prawa dostępu nie blokują zapisu (root albo Windows) — część przypadków jest pomijana.
 bool isRoot()
 {
-    return ::geteuid() == 0;
+    return !cynamoncode::testing::permissionsEnforced();
 }
 
 QByteArray readBytes(const QString &path)
@@ -101,7 +102,7 @@ void TestFileService::readDirectory()
 
 void TestFileService::refusesReadOnlyFile()
 {
-    if (isRoot())
+    if (!cynamoncode::testing::readOnlyFilesEnforced())
         QSKIP("Użytkownik root omija prawa dostępu.");
 
     QTemporaryDir dir;
@@ -117,7 +118,7 @@ void TestFileService::refusesReadOnlyFile()
 void TestFileService::refusesNonWritableDirectory()
 {
     if (isRoot())
-        QSKIP("Użytkownik root omija prawa dostępu.");
+        QSKIP("Prawa katalogu nie blokują zapisu (root albo Windows).");
 
     QTemporaryDir dir;
     const QString subdir = dir.filePath(QStringLiteral("zablokowany"));
@@ -136,6 +137,9 @@ void TestFileService::refusesNonWritableDirectory()
 
 void TestFileService::keepsPermissions()
 {
+#ifndef Q_OS_UNIX
+    QSKIP("Prawa POSIX tylko na Uniksie.");
+#endif
     QTemporaryDir dir;
     const QString path = dir.filePath(QStringLiteral("uprawnienia.txt"));
     QVERIFY(writeBytes(path, "a"));
@@ -149,6 +153,8 @@ void TestFileService::keepsPermissions()
 
 void TestFileService::writesThroughSymlink()
 {
+    if (!cynamoncode::testing::symlinksAvailable())
+        QSKIP("QFile::link tworzy tu skrót .lnk, nie dowiązanie.");
     QTemporaryDir dir;
     const QString target = dir.filePath(QStringLiteral("cel.txt"));
     const QString link = dir.filePath(QStringLiteral("dowiazanie.txt"));
@@ -162,6 +168,8 @@ void TestFileService::writesThroughSymlink()
 
 void TestFileService::refusesBrokenSymlink()
 {
+    if (!cynamoncode::testing::symlinksAvailable())
+        QSKIP("QFile::link tworzy tu skrót .lnk, nie dowiązanie.");
     QTemporaryDir dir;
     const QString link = dir.filePath(QStringLiteral("zerwane.txt"));
     QVERIFY(QFile::link(dir.filePath(QStringLiteral("nie-istnieje.txt")), link));

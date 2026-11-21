@@ -42,6 +42,11 @@ public:
     QString lastSuggestedPath;
     QStringList errors;
     QStringList infos;
+    bool openAsWindows1250Answer = false;
+    int windows1250Questions = 0;
+    bool saveAsUtf8Answer = false;
+    int saveAsUtf8Questions = 0;
+    QString lastUnencodableCharacter;
 
     UnsavedChoice askUnsavedChanges(QWidget *, const QString &) override
     {
@@ -102,6 +107,17 @@ public:
     int replaceInAllQuestions = 0;
     int lastReplaceMatches = 0;
     int lastReplaceDocuments = 0;
+    bool askOpenAsWindows1250(QWidget *, const QString &) override
+    {
+        ++windows1250Questions;
+        return openAsWindows1250Answer;
+    }
+    bool askSaveAsUtf8(QWidget *, const QString &, const QString &character) override
+    {
+        ++saveAsUtf8Questions;
+        lastUnencodableCharacter = character;
+        return saveAsUtf8Answer;
+    }
     bool askReplaceInAll(QWidget *, int matches, int documents) override
     {
         ++replaceInAllQuestions;

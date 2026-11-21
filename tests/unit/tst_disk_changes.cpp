@@ -16,6 +16,8 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
+#include "../TestPlatform.h"
+
 #include <cstdio>
 
 using namespace cynamoncode;
@@ -95,14 +97,20 @@ void TestDiskChanges::busyFileDoesNotStarveOthers()
     clock.start();
     QVERIFY(writeBytes(quiet, "zmiana"));
     bool quietReported = false;
-    for (int i = 0; i < 30 && !quietReported; ++i) {
+    for (int i = 0; i < 40 && !quietReported; ++i) {
         QVERIFY(writeBytes(busy, QByteArray::number(i)));
         QTest::qWait(50);
         for (const QList<QVariant> &call : std::as_const(spy))
             quietReported = quietReported || call.first().toString() == quiet;
     }
     QVERIFY(quietReported);
-    QVERIFY2(clock.elapsed() < 1000, qPrintable(QString::number(clock.elapsed())));
+#ifdef Q_OS_WIN
+    // Windows gubi część powiadomień — zgłasza je wtedy odpytywanie (PollMs).
+    const qint64 limit = FileWatchService::PollMs + FileWatchService::DebounceMs + 400;
+#else
+    const qint64 limit = 1000;
+#endif
+    QVERIFY2(clock.elapsed() < limit, qPrintable(QString::number(clock.elapsed())));
 }
 
 void TestDiskChanges::reappearingFileIsWatchedAgain()
@@ -245,9 +253,7 @@ void TestDiskChanges::watcherReportsWriteAndRenameReplace()
     const QString temporary = dir.filePath(QStringLiteral("tmp.txt"));
     QVERIFY(writeBytes(temporary, "333"));
     const int before = spy.count();
-    QCOMPARE(std::rename(QFile::encodeName(temporary).constData(),
-                         QFile::encodeName(path).constData()),
-             0);
+    QVERIFY(cynamoncode::testing::replaceByRename(temporary, path));
     QTRY_VERIFY_WITH_TIMEOUT(spy.count() > before, 5000);
 
     const int afterRename = spy.count();

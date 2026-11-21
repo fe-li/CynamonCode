@@ -20,13 +20,45 @@ FileWatchService::FileWatchService(QObject *parent)
     connect(&m_retry, &QTimer::timeout, this, &FileWatchService::retryMissing);
 
     connect(&m_watcher, &QFileSystemWatcher::fileChanged, this, [this](const QString &path) {
-        if (!m_paths.contains(path))
-            return;
-        m_pending.insert(path);
-        // Bez restartu aktywnego okna — inaczej często zmieniany plik zagłodziłby resztę.
-        if (!m_debounce.isActive())
-            m_debounce.start();
+        if (m_paths.contains(path))
+            queue(path);
     });
+
+#ifdef Q_OS_WIN
+    m_poll.setInterval(PollMs);
+    connect(&m_poll, &QTimer::timeout, this, &FileWatchService::poll);
+    m_poll.start();
+#endif
+}
+
+FileWatchService::Fingerprint FileWatchService::fingerprintOf(const QString &path)
+{
+    const QFileInfo info(path);
+    if (!info.exists())
+        return {};
+    return {info.size(), info.lastModified()};
+}
+
+void FileWatchService::queue(const QString &path)
+{
+    m_pending.insert(path);
+    // Bez restartu aktywnego okna — inaczej często zmieniany plik zagłodziłby resztę.
+    if (!m_debounce.isActive())
+        m_debounce.start();
+}
+
+void FileWatchService::poll()
+{
+    for (const QString &path : std::as_const(m_paths)) {
+        if (m_missing.contains(path) || m_pending.contains(path))
+            continue;
+        const Fingerprint current = fingerprintOf(path);
+        auto stored = m_fingerprints.find(path);
+        if (stored == m_fingerprints.end() || *stored == current)
+            continue;
+        *stored = current;
+        queue(path);
+    }
 }
 
 void FileWatchService::watch(const QString &path)
@@ -42,6 +74,7 @@ void FileWatchService::unwatch(const QString &path)
     m_paths.remove(path);
     m_pending.remove(path);
     m_missing.remove(path);
+    m_fingerprints.remove(path);
     if (m_watcher.files().contains(path))
         m_watcher.removePath(path);
     updateRetryTimer();
@@ -53,6 +86,7 @@ void FileWatchService::rewatch(const QString &path)
         return;
     if (m_watcher.files().contains(path))
         m_watcher.removePath(path);
+    m_fingerprints.insert(path, fingerprintOf(path));
     if (QFileInfo::exists(path) && m_watcher.addPath(path))
         m_missing.remove(path);
     else

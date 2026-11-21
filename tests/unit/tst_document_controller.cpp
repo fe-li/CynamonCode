@@ -12,6 +12,8 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
+#include "../TestPlatform.h"
+
 using namespace cynamoncode;
 
 namespace {
@@ -38,6 +40,8 @@ class TestDocumentController : public QObject
 
 private slots:
     void openingSameFileTwiceReturnsExistingDocument();
+    void windows1250OpenSaveRoundtrip();
+    void windows1250RefusesUnencodableAndSwitchesToUtf8();
     void sameNameInDifferentDirsGivesTwoDocuments();
     void saveRoundtripKeepsBytes_data();
     void saveRoundtripKeepsBytes();
@@ -48,6 +52,7 @@ private slots:
     void refusesInvalidUtf8AndBinary();
     void closedDocumentCanBeOpenedAgain();
     void symlinkAndTargetAreOneDocument();
+    void caseVariantIsSameDocumentWhereCaseInsensitive();
     void languageIsDetectedOnOpenAndSaveAs();
     void manualLanguageIsKept();
 };
@@ -200,8 +205,92 @@ void TestDocumentController::closedDocumentCanBeOpenedAgain()
     QVERIFY(again.id != first.id);
 }
 
+void TestDocumentController::windows1250OpenSaveRoundtrip()
+{
+    QTemporaryDir dir;
+    const QString path = dir.filePath(QStringLiteral("stary.txt"));
+    const QByteArray bytes("Za\xBF\xF3\xB3\xE6 g\xEA\x9Cl\xB9 ja\x9F\xF1\r\n\x8C" "cie\xBF" "ka\r\n");
+    QVERIFY(writeBytes(path, bytes));
+
+    DocumentController controller;
+    const OpenOutcome refused = controller.open(path);
+    QVERIFY(refused.status == OpenStatus::Failed);
+    QVERIFY(refused.failure == OpenFailure::InvalidUtf8);
+    QCOMPARE(controller.documentCount(), qsizetype(0));
+
+    const OpenOutcome opened = controller.open(path, TextEncoding::Windows1250);
+    QVERIFY(opened.status == OpenStatus::Opened);
+    QCOMPARE(opened.text, QStringLiteral("Zażółć gęślą jaźń\r\nŚcieżka\r\n"));
+    QVERIFY(controller.document(opened.id)->encoding == TextEncoding::Windows1250);
+    QCOMPARE(controller.document(opened.id)->lineEnding, LineEnding::CRLF);
+
+    // Zapis bez zmian — bajt w bajt; zmiana tekstu — nadal Windows-1250.
+    QVERIFY(controller.save(opened.id, opened.text).ok());
+    QCOMPARE(readBytes(path), bytes);
+    QVERIFY(controller.save(opened.id, opened.text + QStringLiteral("Łódź\r\n")).ok());
+    QCOMPARE(readBytes(path), bytes + QByteArray("\xA3\xF3" "d\x9F\r\n"));
+
+    // Przeładowanie w kodowaniu dokumentu.
+    const OpenOutcome reloaded = controller.reload(opened.id);
+    QVERIFY(reloaded.status == OpenStatus::Opened);
+    QVERIFY(reloaded.text.endsWith(QStringLiteral("Łódź\r\n")));
+}
+
+void TestDocumentController::windows1250RefusesUnencodableAndSwitchesToUtf8()
+{
+    QTemporaryDir dir;
+    const QString path = dir.filePath(QStringLiteral("stary.txt"));
+    const QByteArray bytes("k\xB3" "oda\n");
+    QVERIFY(writeBytes(path, bytes));
+    DocumentController controller;
+    const OpenOutcome opened = controller.open(path, TextEncoding::Windows1250);
+    QVERIFY(opened.status == OpenStatus::Opened);
+
+    const QString withEmoji = QStringLiteral("kłoda 🐈\n");
+    QCOMPARE(controller.firstUnencodable(opened.id, withEmoji), qsizetype(6));
+    const SaveOutcome refused = controller.save(opened.id, withEmoji);
+    QVERIFY(refused.failure == SaveFailure::NotRepresentable);
+    QCOMPARE(refused.unencodableAt, qsizetype(6));
+    QCOMPARE(readBytes(path), bytes); // plik nietknięty
+
+    controller.setEncoding(opened.id, TextEncoding::Utf8);
+    QCOMPARE(controller.firstUnencodable(opened.id, withEmoji), qsizetype(-1));
+    QVERIFY(controller.save(opened.id, withEmoji).ok());
+    QCOMPARE(readBytes(path), withEmoji.toUtf8());
+    QVERIFY(controller.document(opened.id)->encoding == TextEncoding::Utf8);
+
+    // Bajt niezdefiniowany w CP1250 — odmowa także w tym kodowaniu.
+    const QString other = dir.filePath(QStringLiteral("dziwny.bin"));
+    QVERIFY(writeBytes(other, QByteArray("a\x81" "b")));
+    const OpenOutcome strange = controller.open(other, TextEncoding::Windows1250);
+    QVERIFY(strange.status == OpenStatus::Failed);
+    QVERIFY(strange.failure == OpenFailure::NotWindows1250);
+}
+
+void TestDocumentController::caseVariantIsSameDocumentWhereCaseInsensitive()
+{
+#if !defined(Q_OS_WIN) && !defined(Q_OS_MACOS)
+    QSKIP("Linux rozróżnia wielkość liter w nazwach plików.");
+#endif
+    QTemporaryDir dir;
+    const QString path = dir.filePath(QStringLiteral("Notatka.txt"));
+    QVERIFY(writeBytes(path, "treść"));
+    const QString variant = dir.filePath(QStringLiteral("NOTATKA.TXT"));
+    QVERIFY(QFileInfo::exists(variant)); // system bez rozróżniania wielkości liter
+
+    DocumentController controller;
+    const OpenOutcome first = controller.open(path);
+    QVERIFY(first.status == OpenStatus::Opened);
+    const OpenOutcome second = controller.open(variant);
+    QVERIFY(second.status == OpenStatus::AlreadyOpen);
+    QCOMPARE(second.id, first.id);
+    QCOMPARE(controller.documentCount(), qsizetype(1));
+}
+
 void TestDocumentController::symlinkAndTargetAreOneDocument()
 {
+    if (!cynamoncode::testing::symlinksAvailable())
+        QSKIP("QFile::link tworzy tu skrót .lnk, nie dowiązanie.");
     QTemporaryDir dir;
     const QString target = dir.filePath(QStringLiteral("cel.txt"));
     const QString link = dir.filePath(QStringLiteral("dowiazanie.txt"));

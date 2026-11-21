@@ -1,0 +1,38 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Kamil Feliszewski
+
+// Zasoby programu na Windows: ikona i informacje o wersji (Właściwości pliku).
+#pragma code_page(65001)
+
+#include <winver.h>
+
+IDI_ICON1 ICON "@PROJECT_SOURCE_DIR@/resources/icons/cynamoncode.ico"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION @PROJECT_VERSION_MAJOR@,@PROJECT_VERSION_MINOR@,@PROJECT_VERSION_PATCH@,0
+PRODUCTVERSION @PROJECT_VERSION_MAJOR@,@PROJECT_VERSION_MINOR@,@PROJECT_VERSION_PATCH@,0
+FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+FILEFLAGS 0x0L
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "041504B0"
+        BEGIN
+            VALUE "CompanyName", "Kamil Feliszewski"
+            VALUE "FileDescription", "CynamonCode — edytor tekstu i kodu"
+            VALUE "FileVersion", "@PROJECT_VERSION@"
+            VALUE "InternalName", "cynamoncode"
+            VALUE "LegalCopyright", "© 2026 Kamil Feliszewski, GPL-3.0-or-later"
+            VALUE "OriginalFilename", "cynamoncode.exe"
+            VALUE "ProductName", "CynamonCode"
+            VALUE "ProductVersion", "@PROJECT_VERSION@"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0415, 1200
+    END
+END

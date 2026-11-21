@@ -62,6 +62,8 @@ public:
     // Otwiera plik w nowej karcie (w panelu `pane`, domyślnie aktywnym) albo
     // aktywuje widok, w którym już jest otwarty.
     bool openFile(const QString &path, int pane = -1);
+    // Jak openFile, ale w podanym kodowaniu, bez pytania (np. przywracanie sesji).
+    bool openFileAs(const QString &path, int pane, std::optional<TextEncoding> encoding);
 
     // Liczba kart we wszystkich panelach; editorAt() liczy panel 0, potem 1.
     int documentCount() const;
@@ -112,6 +114,9 @@ public:
     // Domyślny program dla typów plików (D047): pliki mimeapps.list użytkownika
     // ($XDG_CONFIG_HOME), zmiana dopiero po „OK”.
     DefaultAppsDialog *openDefaultAppsDialog();
+    // Polecenie menu według systemu: Linux — okno wyboru typów; Windows — informacja
+    // i systemowe „Aplikacje domyślne”; macOS — instrukcja dla Findera (D053).
+    void openDefaultApps();
     HelpDialog *openHelp();
 
     // Nawigacja klawiaturą (D046).
@@ -155,6 +160,9 @@ private:
     void syncEditorLanguage(EditorWidget *editor);
 
     bool saveEditor(EditorWidget *editor, bool askForPath, bool suggestCopyName = false);
+    // Znak spoza kodowania pliku: pytanie o zapis w UTF-8 (D051); false = anuluj zapis.
+    bool ensureEncodable(EditorWidget *editor);
+    bool saveCurrentAsUtf8();
     void beginPrompt(DocumentId id);
     void endPrompt(DocumentId id);
     bool needsSaving(const EditorWidget *editor) const;
@@ -227,6 +235,7 @@ private:
     QAction *m_saveAction = nullptr;
     QAction *m_saveAsAction = nullptr;
     QAction *m_saveAllAction = nullptr;
+    QAction *m_saveUtf8Action = nullptr;
     QAction *m_closeTabAction = nullptr;
     QAction *m_quitAction = nullptr;
     QAction *m_undoAction = nullptr;

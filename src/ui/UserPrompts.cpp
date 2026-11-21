@@ -186,4 +186,37 @@ std::optional<QFont> DialogPrompts::askFont(QWidget *parent, const QFont &curren
     return font;
 }
 
+bool DialogPrompts::askOpenAsWindows1250(QWidget *parent, const QString &path)
+{
+    QMessageBox box(QMessageBox::Question, tr("Plik spoza UTF-8"),
+                    tr("Plik %1 nie jest zapisany w UTF-8.\n\nJeśli pochodzi z Windows, może być "
+                       "w kodowaniu Windows-1250 (polskie znaki). Otworzyć go w tym kodowaniu? "
+                       "Plik zostanie zapisany z powrotem w Windows-1250.")
+                        .arg(path),
+                    QMessageBox::NoButton, parent);
+    QPushButton *open = box.addButton(tr("Otwórz jako Windows-1250"), QMessageBox::AcceptRole);
+    QPushButton *cancel = box.addButton(tr("Anuluj"), QMessageBox::RejectRole);
+    box.setDefaultButton(cancel);
+    box.setEscapeButton(cancel);
+    box.exec();
+    return box.clickedButton() == open;
+}
+
+bool DialogPrompts::askSaveAsUtf8(QWidget *parent, const QString &documentName,
+                                  const QString &character)
+{
+    QMessageBox box(QMessageBox::Warning, tr("Znak spoza kodowania"),
+                    tr("Dokument „%1” zawiera znak „%2”, którego nie da się zapisać w "
+                       "Windows-1250.\n\nZapisać dokument w UTF-8? Inaczej zapis zostanie "
+                       "anulowany, a zmiany pozostaną w edytorze.")
+                        .arg(documentName, character),
+                    QMessageBox::NoButton, parent);
+    QPushButton *utf8 = box.addButton(tr("Zapisz jako UTF-8"), QMessageBox::AcceptRole);
+    QPushButton *cancel = box.addButton(tr("Anuluj"), QMessageBox::RejectRole);
+    box.setDefaultButton(cancel);
+    box.setEscapeButton(cancel);
+    box.exec();
+    return box.clickedButton() == utf8;
+}
+
 } // namespace cynamoncode

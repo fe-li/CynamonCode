@@ -19,6 +19,7 @@
 #include <QStringList>
 
 #include <algorithm>
+#include <cstdint>
 
 namespace cynamoncode {
 
@@ -212,7 +213,7 @@ void EditorWidget::applyReplacements(const QString &text, const QList<Replacemen
         beginUndoAction();
         SendScintilla(QsciScintillaBase::SCI_SETTARGETRANGE, static_cast<unsigned long>(span.at(0)),
                       static_cast<long>(span.at(1)));
-        SendScintilla(QsciScintillaBase::SCI_REPLACETARGET, static_cast<unsigned long>(utf8.size()),
+        SendScintilla(QsciScintillaBase::SCI_REPLACETARGET, static_cast<uintptr_t>(utf8.size()),
                       utf8.constData());
         endUndoAction();
 
@@ -241,7 +242,7 @@ void EditorWidget::applyReplacements(const QString &text, const QList<Replacemen
                       static_cast<unsigned long>(bytes.at(2 * i)),
                       static_cast<long>(bytes.at(2 * i + 1)));
         SendScintilla(QsciScintillaBase::SCI_REPLACETARGET,
-                      static_cast<unsigned long>(utf8.size()), utf8.constData());
+                      static_cast<uintptr_t>(utf8.size()), utf8.constData());
     }
     endUndoAction();
 }

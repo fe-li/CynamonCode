@@ -32,7 +32,9 @@
 #include <QMenuBar>
 #include <QSettings>
 #include <QSplitter>
+#include <QDesktopServices>
 #include <QStandardPaths>
+#include <QUrl>
 #include <QStatusBar>
 #include <QTabBar>
 #include <QTabWidget>
@@ -204,6 +206,11 @@ void MainWindow::createPanes()
 
 bool MainWindow::openFile(const QString &path, int pane)
 {
+    return openFileAs(path, pane, std::nullopt);
+}
+
+bool MainWindow::openFileAs(const QString &path, int pane, std::optional<TextEncoding> encoding)
+{
     const int target = targetPane(pane);
     EditorWidget *pristine =
         (documentCount() == 1 && isPristineUntitled(editorAt(0))) ? editorAt(0) : nullptr;
@@ -215,7 +222,13 @@ bool MainWindow::openFile(const QString &path, int pane)
         && !m_prompts->askOpenLargeFile(this, QDir::toNativeSeparators(path), info.size()))
         return false;
 
-    const OpenOutcome outcome = m_documents.open(path);
+    OpenOutcome outcome = m_documents.open(path, encoding.value_or(TextEncoding::Utf8));
+    // Plik spoza UTF-8: na wyraźny wybór użytkownika jako Windows-1250 (D051).
+    if (outcome.status == OpenStatus::Failed && outcome.failure == OpenFailure::InvalidUtf8
+        && !encoding && !m_restoringSession
+        && m_prompts->askOpenAsWindows1250(this, QDir::toNativeSeparators(path))) {
+        outcome = m_documents.open(path, TextEncoding::Windows1250);
+    }
     switch (outcome.status) {
     case OpenStatus::AlreadyOpen:
         if (EditorWidget *existing = viewInPane(outcome.id, m_activePane)) {
@@ -437,12 +450,17 @@ void MainWindow::createActions()
     m_saveAllAction = makeAction(tr("Zapisz &wszystkie"), "actionSaveAll");
     connect(m_saveAllAction, &QAction::triggered, this, [this] { saveAll(); });
 
+    m_saveUtf8Action = makeAction(tr("Zapisz w kodowaniu &UTF-8"), "actionSaveAsUtf8");
+    m_saveUtf8Action->setStatusTip(tr("Zapisuje plik w Windows-1250 ponownie, w kodowaniu UTF-8"));
+    connect(m_saveUtf8Action, &QAction::triggered, this, [this] { saveCurrentAsUtf8(); });
+
     m_closeTabAction =
         makeAction(tr("Zamknij &kartę"), "actionCloseTab", QKeySequence(Qt::CTRL | Qt::Key_W));
     connect(m_closeTabAction, &QAction::triggered, this, [this] { closeCurrentTab(); });
 
     // Jawny skrót: QKeySequence::Quit bywa pusty zależnie od motywu platformy.
     m_quitAction = makeAction(tr("Za&kończ"), "actionQuit", QKeySequence(Qt::CTRL | Qt::Key_Q));
+    m_quitAction->setMenuRole(QAction::QuitRole); // macOS: menu aplikacji
     m_quitAction->setStatusTip(tr("Zamyka program"));
     // close(), a nie QApplication::quit(): closeEvent pyta o niezapisane zmiany.
     connect(m_quitAction, &QAction::triggered, this, &QWidget::close);
@@ -526,6 +544,7 @@ void MainWindow::createMenus()
     fileMenu->addAction(m_saveAction);
     fileMenu->addAction(m_saveAsAction);
     fileMenu->addAction(m_saveAllAction);
+    fileMenu->addAction(m_saveUtf8Action);
     fileMenu->addSeparator();
     fileMenu->addAction(m_closeTabAction);
     fileMenu->addSeparator();
@@ -948,7 +967,7 @@ void MainWindow::createViewAndLanguageMenus()
     connect(shortcutsAction, &QAction::triggered, this, [this] { openShortcutsDialog(); });
     QAction *defaultAppsAction = settingsMenu->addAction(tr("&Domyślny program dla plików…"));
     defaultAppsAction->setObjectName(QStringLiteral("actionDefaultApps"));
-    connect(defaultAppsAction, &QAction::triggered, this, [this] { openDefaultAppsDialog(); });
+    connect(defaultAppsAction, &QAction::triggered, this, [this] { openDefaultApps(); });
 
     QMenu *helpMenu = menuBar()->addMenu(tr("Pomo&c"));
     helpMenu->setObjectName(QStringLiteral("menuHelp"));
@@ -1145,6 +1164,26 @@ ShortcutsDialog *MainWindow::openShortcutsDialog()
     return dialog;
 }
 
+void MainWindow::openDefaultApps()
+{
+#if defined(Q_OS_WIN)
+    m_prompts->showInfo(
+        this, tr("Domyślny program dla plików"),
+        tr("Windows pozwala wybrać domyślny program wyłącznie w ustawieniach systemu. "
+           "Otworzą się „Aplikacje domyślne”: wpisz typ pliku (np. .html) i wybierz "
+           "CynamonCode. Program jest też na liście „Otwórz za pomocą” plików tekstowych."));
+    QDesktopServices::openUrl(QUrl(QStringLiteral("ms-settings:defaultapps")));
+#elif defined(Q_OS_MACOS)
+    m_prompts->showInfo(
+        this, tr("Domyślny program dla plików"),
+        tr("W Finderze zaznacz plik danego typu (np. .html), wybierz Plik → Pokaż "
+           "informacje, w sekcji „Otwórz za pomocą” wybierz CynamonCode i kliknij "
+           "„Zmień wszystko…”."));
+#else
+    openDefaultAppsDialog();
+#endif
+}
+
 DefaultAppsDialog *MainWindow::openDefaultAppsDialog()
 {
     if (m_defaultAppsDialog)
@@ -1330,6 +1369,12 @@ bool MainWindow::saveEditor(EditorWidget *editor, bool askForPath, bool suggestC
     if (!document)
         return false;
 
+    if (!ensureEncodable(editor))
+        return false;
+    document = m_documents.document(id); // po pytaniu (pętla zdarzeń) — od nowa
+    if (!document)
+        return false;
+
     const QString name = displayName(id);
     const QString previousPath = document->filePath;
     SaveOutcome outcome;
@@ -1394,6 +1439,48 @@ bool MainWindow::saveEditor(EditorWidget *editor, bool askForPath, bool suggestC
     updateWindowTitle();
     // Po „Zapisz jako” z nowym rozszerzeniem język mógł się zmienić (D023).
     syncEditorLanguage(editor);
+    return true;
+}
+
+bool MainWindow::ensureEncodable(EditorWidget *editor)
+{
+    const DocumentId id = documentIdOf(editor);
+    const QString text = editor->text();
+    const qsizetype at = m_documents.firstUnencodable(id, text);
+    if (at < 0)
+        return true;
+    // Para zastępcza (np. emoji) to jeden znak.
+    const qsizetype length = (text.at(at).isHighSurrogate() && at + 1 < text.size()) ? 2 : 1;
+    beginPrompt(id);
+    const bool utf8 = m_prompts->askSaveAsUtf8(this, displayName(id), text.mid(at, length));
+    endPrompt(id);
+    if (!utf8)
+        return false;
+    m_documents.setEncoding(id, TextEncoding::Utf8);
+    updateCursorStatus();
+    updateActions();
+    return true;
+}
+
+bool MainWindow::saveCurrentAsUtf8()
+{
+    EditorWidget *editor = currentEditor();
+    if (!editor)
+        return false;
+    const DocumentId id = documentIdOf(editor);
+    const DocumentState *document = m_documents.document(id);
+    if (!document || document->isUntitled() || document->encoding == TextEncoding::Utf8)
+        return false;
+    const TextEncoding previous = document->encoding;
+    m_documents.setEncoding(id, TextEncoding::Utf8);
+    if (!saveEditor(editor, false)) {
+        m_documents.setEncoding(id, previous); // nic nie zapisano — kodowanie bez zmian
+        updateCursorStatus();
+        updateActions();
+        return false;
+    }
+    updateCursorStatus();
+    updateActions();
     return true;
 }
 
@@ -1832,6 +1919,8 @@ Session MainWindow::captureSession() const
             tab.firstVisibleLine = editor->firstVisibleLine();
             if (document->languageChosenManually)
                 tab.languageKey = LanguageRegistry::key(document->language);
+            if (document->encoding != TextEncoding::Utf8)
+                tab.encodingKey = textEncodingKey(document->encoding);
             if (i == tabs->currentIndex())
                 pane.current = static_cast<int>(pane.tabs.size());
             pane.tabs.append(tab);
@@ -1880,7 +1969,7 @@ bool MainWindow::restoreSession()
                         insertIntoPane(view, p);
                     }
                 }
-            } else if (openFile(tab.path, p)) {
+            } else if (openFileAs(tab.path, p, textEncodingFromKey(tab.encodingKey))) {
                 if (const std::optional<DocumentId> opened = m_documents.findOpen(tab.path))
                     view = viewInPane(*opened, p);
             }
@@ -1996,6 +2085,10 @@ void MainWindow::updateActions()
         action->setEnabled(hasEditor);
     }
     m_saveAllAction->setEnabled(documentCount() > 0);
+    const DocumentState *current =
+        hasEditor ? m_documents.document(documentIdOf(currentEditor())) : nullptr;
+    m_saveUtf8Action->setEnabled(current && !current->isUntitled()
+                                 && current->encoding != TextEncoding::Utf8);
     m_findInAllAction->setEnabled(documentCount() > 0);
     m_languageGroup->setEnabled(hasEditor);
 }
@@ -2037,7 +2130,10 @@ void MainWindow::updateCursorStatus()
     m_cursorLabel->setText(position);
 
     m_languageLabel->setText(LanguageRegistry::displayName(editor->language()));
-    m_encodingLabel->setText(document->hasBom ? tr("UTF-8 z BOM") : QStringLiteral("UTF-8"));
+    if (document->encoding == TextEncoding::Windows1250)
+        m_encodingLabel->setText(QStringLiteral("Windows-1250"));
+    else
+        m_encodingLabel->setText(document->hasBom ? tr("UTF-8 z BOM") : QStringLiteral("UTF-8"));
     switch (document->lineEnding) {
     case LineEnding::CRLF:
         m_lineEndingLabel->setText(QStringLiteral("CRLF"));
@@ -2066,8 +2162,12 @@ void MainWindow::reportOpenFailure(const QString &path, const OpenOutcome &outco
                     "Otwieranie anulowano, aby nie uszkodzić danych.");
         break;
     case OpenFailure::InvalidUtf8:
-        reason = tr("Plik nie jest poprawnym tekstem UTF-8. Ta wersja CynamonCode otwiera "
-                    "tylko pliki UTF-8; plik pozostał bez zmian.");
+        reason = tr("Plik nie jest poprawnym tekstem UTF-8 i nie otwarto go jako "
+                    "Windows-1250. Plik pozostał bez zmian.");
+        break;
+    case OpenFailure::NotWindows1250:
+        reason = tr("Plik nie jest tekstem ani w UTF-8, ani w Windows-1250 (zawiera bajty bez "
+                    "znaczenia w tym kodowaniu). Plik pozostał bez zmian.");
         break;
     case OpenFailure::File:
     case OpenFailure::None:
@@ -2091,6 +2191,9 @@ void MainWindow::reportSaveFailure(const QString &name, const SaveOutcome &outco
         break;
     case SaveFailure::File:
         reason = fileErrorText(outcome.fileError, outcome.systemMessage);
+        break;
+    case SaveFailure::NotRepresentable:
+        reason = tr("Dokument zawiera znaki, których nie da się zapisać w kodowaniu pliku.");
         break;
     case SaveFailure::NoPath:
     case SaveFailure::UnknownDocument:

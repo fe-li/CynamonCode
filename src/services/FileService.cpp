@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QSaveFile>
+#include <QThread>
 
 namespace cynamoncode::FileService {
 
@@ -15,7 +16,7 @@ FileReadResult readAll(const QString &path)
     const QFileInfo info(path);
 
     if (!info.exists()) {
-        result.error = info.isSymLink() ? FileError::BrokenSymlink : FileError::NotFound;
+        result.error = info.isSymbolicLink() ? FileError::BrokenSymlink : FileError::NotFound;
         return result;
     }
     if (!info.isFile()) {
@@ -43,13 +44,46 @@ FileReadResult readAll(const QString &path)
     return result;
 }
 
+namespace {
+
+// Jedna próba zapisu atomowego. directWriteFallback pozostaje wyłączony (domyślnie
+// false): bez możliwości atomowej podmiany zapis ma się nie udać, zamiast
+// nadpisywać plik w miejscu.
+FileWriteResult writeOnce(const QString &target, const QByteArray &data)
+{
+    FileWriteResult result;
+    QSaveFile file(target);
+    if (!file.open(QIODevice::WriteOnly)) {
+        result.error = FileError::OpenFailed;
+        result.systemMessage = file.errorString();
+        return result;
+    }
+
+    const qint64 written = file.write(data);
+    if (written != data.size()) {
+        result.error = FileError::WriteFailed;
+        result.systemMessage = file.errorString();
+        file.cancelWriting();
+        return result;
+    }
+
+    if (!file.commit()) {
+        result.error = FileError::CommitFailed;
+        result.systemMessage = file.errorString();
+    }
+    return result;
+}
+
+} // namespace
+
 FileWriteResult writeAtomically(const QString &path, const QByteArray &data)
 {
     FileWriteResult result;
 
     QString target = path;
     const QFileInfo info(path);
-    if (info.isSymLink()) {
+    // Tylko dowiązania symboliczne — skrót Windows (.lnk) to zwykły plik (D053).
+    if (info.isSymbolicLink()) {
         const QString resolved = info.canonicalFilePath();
         if (resolved.isEmpty()) {
             result.error = FileError::BrokenSymlink;
@@ -70,27 +104,18 @@ FileWriteResult writeAtomically(const QString &path, const QByteArray &data)
         }
     }
 
-    QSaveFile file(target);
-    // directWriteFallback pozostaje wyłączony (domyślnie false): bez możliwości
-    // atomowej podmiany zapis ma się nie udać, zamiast nadpisywać plik w miejscu.
-    if (!file.open(QIODevice::WriteOnly)) {
-        result.error = FileError::OpenFailed;
-        result.systemMessage = file.errorString();
-        return result;
+    result = writeOnce(target, data);
+#ifdef Q_OS_WIN
+    // Windows: plik świeżo zapisany lub odczytany bywa przez chwilę otwarty przez
+    // inny proces (Windows Defender, indeksowanie) i podmiana kończy się „Odmową
+    // dostępu”. Oryginał jest wtedy nietknięty — ponawiamy cały zapis atomowy.
+    for (const int delayMs : {25, 50, 100, 150, 200, 250, 300}) {
+        if (result.error != FileError::CommitFailed)
+            break;
+        QThread::msleep(static_cast<unsigned long>(delayMs));
+        result = writeOnce(target, data);
     }
-
-    const qint64 written = file.write(data);
-    if (written != data.size()) {
-        result.error = FileError::WriteFailed;
-        result.systemMessage = file.errorString();
-        file.cancelWriting();
-        return result;
-    }
-
-    if (!file.commit()) {
-        result.error = FileError::CommitFailed;
-        result.systemMessage = file.errorString();
-    }
+#endif
     return result;
 }
 

@@ -16,7 +16,8 @@
 #   QScintillaQt6_FOUND
 #   QScintillaQt6_VERSION      z QSCINTILLA_VERSION_STR w Qsci/qsciglobal.h
 #   QScintillaQt6_INCLUDE_DIR  katalog zawierający podkatalog Qsci/
-#   QScintillaQt6_LIBRARY      ścieżka biblioteki qscintilla2_qt6
+#   QScintillaQt6_LIBRARY      biblioteka(i) qscintilla2_qt6 (optimized/debug)
+#   QScintillaQt6_DLL_RELEASE  (Windows) plik DLL do wdrożenia obok programu
 #
 # Target importowany:
 #   QScintilla::QScintilla
@@ -66,10 +67,31 @@ find_path(QScintillaQt6_INCLUDE_DIR
     DOC "Katalog zawierający Qsci/qsciscintilla.h (QScintilla dla Qt6)")
 
 # Tylko nazwy wariantu Qt6 — biblioteka Qt5 (qscintilla2_qt5) nie może zostać wybrana.
-find_library(QScintillaQt6_LIBRARY
+# Wariant Debug (Windows: qscintilla2_qt6d, macOS: qscintilla2_qt6_debug) jest
+# opcjonalny; dystrybucje Linuksa dostarczają tylko jedną bibliotekę.
+find_library(QScintillaQt6_LIBRARY_RELEASE
     NAMES qscintilla2_qt6
     HINTS ${_qsci_library_hints}
     DOC "Biblioteka QScintilla dla Qt6")
+find_library(QScintillaQt6_LIBRARY_DEBUG
+    NAMES qscintilla2_qt6d qscintilla2_qt6_debug
+    HINTS ${_qsci_library_hints}
+    DOC "Biblioteka QScintilla dla Qt6 (Debug)")
+include(SelectLibraryConfigurations)
+select_library_configurations(QScintillaQt6)
+
+# Windows: biblioteka współdzielona = biblioteka importu (.lib) + plik DLL.
+if(WIN32)
+    set(_qsci_dll_hints ${_qsci_library_hints})
+    foreach(_dir IN LISTS _qsci_library_hints)
+        list(APPEND _qsci_dll_hints "${_dir}/../bin")
+    endforeach()
+    find_file(QScintillaQt6_DLL_RELEASE NAMES qscintilla2_qt6.dll HINTS ${_qsci_dll_hints}
+        DOC "DLL QScintilla dla Qt6")
+    find_file(QScintillaQt6_DLL_DEBUG NAMES qscintilla2_qt6d.dll HINTS ${_qsci_dll_hints}
+        DOC "DLL QScintilla dla Qt6 (Debug)")
+    mark_as_advanced(QScintillaQt6_DLL_RELEASE QScintillaQt6_DLL_DEBUG)
+endif()
 
 # Ochrona przed nagłówkami Qt5 (np. /usr/include/x86_64-linux-gnu/qt5/Qsci).
 if(QScintillaQt6_INCLUDE_DIR MATCHES "(^|/)[Qq][Tt]5(/|$)")
@@ -99,17 +121,47 @@ zawartość pakietu: dpkg -L libqscintilla2-qt6-dev. \
 Niestandardową instalację wskaż przez -DQScintillaQt6_ROOT=<katalog>.")
 
 if(QScintillaQt6_FOUND AND NOT TARGET QScintilla::QScintilla)
-    add_library(QScintilla::QScintilla UNKNOWN IMPORTED)
+    if(WIN32 AND QScintillaQt6_DLL_RELEASE)
+        # Biblioteka DLL: nagłówki wymagają QSCINTILLA_DLL (__declspec(dllimport)).
+        add_library(QScintilla::QScintilla SHARED IMPORTED)
+        set_target_properties(QScintilla::QScintilla PROPERTIES
+            IMPORTED_CONFIGURATIONS RELEASE
+            IMPORTED_IMPLIB_RELEASE "${QScintillaQt6_LIBRARY_RELEASE}"
+            IMPORTED_LOCATION_RELEASE "${QScintillaQt6_DLL_RELEASE}"
+            INTERFACE_COMPILE_DEFINITIONS QSCINTILLA_DLL)
+        if(QScintillaQt6_LIBRARY_DEBUG AND QScintillaQt6_DLL_DEBUG)
+            set_property(TARGET QScintilla::QScintilla APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
+            set_target_properties(QScintilla::QScintilla PROPERTIES
+                IMPORTED_IMPLIB_DEBUG "${QScintillaQt6_LIBRARY_DEBUG}"
+                IMPORTED_LOCATION_DEBUG "${QScintillaQt6_DLL_DEBUG}")
+        endif()
+    else()
+        add_library(QScintilla::QScintilla UNKNOWN IMPORTED)
+        set_target_properties(QScintilla::QScintilla PROPERTIES
+            IMPORTED_CONFIGURATIONS RELEASE
+            IMPORTED_LOCATION_RELEASE "${QScintillaQt6_LIBRARY_RELEASE}")
+        if(QScintillaQt6_LIBRARY_DEBUG)
+            set_property(TARGET QScintilla::QScintilla APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
+            set_target_properties(QScintilla::QScintilla PROPERTIES
+                IMPORTED_LOCATION_DEBUG "${QScintillaQt6_LIBRARY_DEBUG}")
+        endif()
+    endif()
+    # Konfiguracje bez własnej biblioteki używają wariantu Release.
     set_target_properties(QScintilla::QScintilla PROPERTIES
-        IMPORTED_LOCATION "${QScintillaQt6_LIBRARY}"
+        MAP_IMPORTED_CONFIG_RELWITHDEBINFO RELEASE
+        MAP_IMPORTED_CONFIG_MINSIZEREL RELEASE
         INTERFACE_INCLUDE_DIRECTORIES "${QScintillaQt6_INCLUDE_DIR}"
         INTERFACE_LINK_LIBRARIES Qt6::Widgets)
+    if(NOT QScintillaQt6_LIBRARY_DEBUG)
+        set_target_properties(QScintilla::QScintilla PROPERTIES MAP_IMPORTED_CONFIG_DEBUG RELEASE)
+    endif()
 endif()
 
-mark_as_advanced(QScintillaQt6_INCLUDE_DIR QScintillaQt6_LIBRARY)
+mark_as_advanced(QScintillaQt6_INCLUDE_DIR QScintillaQt6_LIBRARY_RELEASE QScintillaQt6_LIBRARY_DEBUG)
 
 unset(_qsci_include_hints)
 unset(_qsci_library_hints)
+unset(_qsci_dll_hints)
 unset(_qsci_qt_includes)
 unset(_qsci_qt_configs)
 unset(_qsci_qt_location)

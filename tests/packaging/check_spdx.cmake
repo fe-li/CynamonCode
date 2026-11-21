@@ -15,7 +15,8 @@ file(GLOB_RECURSE files RELATIVE "${SOURCE_DIR}"
     "${SOURCE_DIR}/tests/CMakeLists.txt"
     "${SOURCE_DIR}/cmake/*.cmake"
     "${SOURCE_DIR}/scripts/*.sh" "${SOURCE_DIR}/scripts/*.py"
-    "${SOURCE_DIR}/packaging/linux/*")
+    "${SOURCE_DIR}/packaging/linux/*" "${SOURCE_DIR}/packaging/windows/*"
+    "${SOURCE_DIR}/packaging/macos/*" "${SOURCE_DIR}/.github/workflows/*.yml")
 list(APPEND files "CMakeLists.txt")
 
 set(missing "")

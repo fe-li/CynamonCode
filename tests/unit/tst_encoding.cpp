@@ -6,6 +6,7 @@
 
 #include "services/EncodingService.h"
 
+#include <QStringDecoder>
 #include <QtTest>
 
 using namespace cynamoncode;
@@ -24,6 +25,11 @@ private slots:
     void doubleBomNeverChangesSilently();
     void detectsLineEndings_data();
     void detectsLineEndings();
+    void windows1250AllDefinedBytesRoundtrip();
+    void windows1250PolishLetters();
+    void windows1250RejectsUndefinedBytesAndNul();
+    void windows1250ReportsUnencodableCharacter();
+    void windows1250MatchesSystemCodecWhereAvailable();
 };
 
 void TestEncoding::roundtripKeepsBytes_data()
@@ -114,6 +120,77 @@ void TestEncoding::detectsLineEndings()
     QFETCH(QByteArray, bytes);
     QFETCH(int, expected);
     QCOMPARE(int(EncodingService::detectLineEnding(bytes)), expected);
+}
+
+void TestEncoding::windows1250AllDefinedBytesRoundtrip()
+{
+    // Każdy bajt poza NUL i pięcioma niezdefiniowanymi daje znak i wraca bez zmian.
+    QByteArray all;
+    for (int b = 1; b < 256; ++b) {
+        if (b != 0x81 && b != 0x83 && b != 0x88 && b != 0x90 && b != 0x98)
+            all.append(static_cast<char>(b));
+    }
+    QCOMPARE(all.size(), 250);
+    const DecodeResult decoded = EncodingService::decodeWindows1250(all);
+    QVERIFY(decoded.ok());
+    QCOMPARE(decoded.text.size(), 250);
+    const EncodeResult encoded = EncodingService::encodeWindows1250(decoded.text);
+    QVERIFY(encoded.ok());
+    QCOMPARE(encoded.bytes, all);
+    QVERIFY(!decoded.text.contains(QChar::ReplacementCharacter));
+}
+
+void TestEncoding::windows1250PolishLetters()
+{
+    const QString letters = QStringLiteral("ąćęłńóśźż ĄĆĘŁŃÓŚŹŻ €");
+    const QByteArray bytes("\xB9\xE6\xEA\xB3\xF1\xF3\x9C\x9F\xBF \xA5\xC6\xCA\xA3\xD1\xD3\x8C\x8F\xAF \x80");
+    QCOMPARE(EncodingService::encodeWindows1250(letters).bytes, bytes);
+    const DecodeResult decoded = EncodingService::decodeWindows1250(bytes + "\r\n");
+    QVERIFY(decoded.ok());
+    QCOMPARE(decoded.text, letters + QStringLiteral("\r\n"));
+    QCOMPARE(decoded.lineEnding, LineEnding::CRLF);
+    QVERIFY(!decoded.hasBom);
+    // Ten sam plik nie jest poprawnym UTF-8 — dlatego potrzebne jest pytanie.
+    QCOMPARE(EncodingService::decodeUtf8(bytes).error, DecodeError::InvalidUtf8);
+}
+
+void TestEncoding::windows1250RejectsUndefinedBytesAndNul()
+{
+    for (const char undefined : {'\x81', '\x83', '\x88', '\x90', '\x98'}) {
+        const QByteArray bytes = QByteArray("abc") + undefined + "def";
+        QCOMPARE(EncodingService::decodeWindows1250(bytes).error, DecodeError::NotWindows1250);
+    }
+    QCOMPARE(EncodingService::decodeWindows1250(QByteArray("a\0b", 3)).error,
+             DecodeError::ContainsNul);
+}
+
+void TestEncoding::windows1250ReportsUnencodableCharacter()
+{
+    const EncodeResult kot = EncodingService::encodeWindows1250(QStringLiteral("Kot 🐈 i ąę"));
+    QVERIFY(!kot.ok());
+    QCOMPARE(kot.unencodableAt, qsizetype(4));
+    QVERIFY(kot.bytes.isEmpty());
+    // Litera spoza Europy Środkowej (np. francuskie „è”) też nie istnieje w CP1250.
+    QCOMPARE(EncodingService::encodeWindows1250(QStringLiteral("très")).unencodableAt,
+             qsizetype(2));
+    QVERIFY(EncodingService::encodeWindows1250(QStringLiteral("zażółć")).ok());
+    // Wspólne API: UTF-8 zapisuje wszystko.
+    QVERIFY(EncodingService::encode(QStringLiteral("🐈"), TextEncoding::Utf8, false).ok());
+}
+
+void TestEncoding::windows1250MatchesSystemCodecWhereAvailable()
+{
+    // Na Linuksie Qt ma zwykle ICU — tablicę sprawdzamy też z kodekiem systemu.
+    QStringDecoder system("windows-1250");
+    if (!system.isValid())
+        QSKIP("Brak kodeka windows-1250 w tej kompilacji Qt (bez ICU).");
+    QByteArray all;
+    for (int b = 0x20; b < 256; ++b) {
+        if (b != 0x81 && b != 0x83 && b != 0x88 && b != 0x90 && b != 0x98)
+            all.append(static_cast<char>(b));
+    }
+    const QString expected = system(all);
+    QCOMPARE(EncodingService::decodeWindows1250(all).text, expected);
 }
 
 QTEST_GUILESS_MAIN(TestEncoding)

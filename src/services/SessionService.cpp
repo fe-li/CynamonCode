@@ -27,6 +27,8 @@ QJsonObject tabToJson(const SessionTab &tab)
     object.insert(QStringLiteral("firstVisibleLine"), tab.firstVisibleLine);
     if (!tab.languageKey.isEmpty())
         object.insert(QStringLiteral("language"), tab.languageKey);
+    if (!tab.encodingKey.isEmpty())
+        object.insert(QStringLiteral("encoding"), tab.encodingKey);
     return object;
 }
 
@@ -88,6 +90,7 @@ std::optional<Session> fromJson(const QByteArray &json)
             tab.index = nonNegative(object.value(QStringLiteral("index")));
             tab.firstVisibleLine = nonNegative(object.value(QStringLiteral("firstVisibleLine")));
             tab.languageKey = object.value(QStringLiteral("language")).toString();
+            tab.encodingKey = object.value(QStringLiteral("encoding")).toString();
             pane.tabs.append(tab);
         }
         const int current = paneObject.value(QStringLiteral("current")).toInt(-1);

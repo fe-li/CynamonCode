@@ -3,6 +3,8 @@
 
 #include "services/DocumentManager.h"
 
+#include "services/PathCompare.h"
+
 #include <algorithm>
 #include <utility>
 
@@ -50,7 +52,7 @@ std::optional<DocumentId> DocumentManager::findByCanonicalPath(const QString &ca
     if (canonicalPath.isEmpty())
         return std::nullopt;
     for (const auto &document : m_documents) {
-        if (document->canonicalPath == canonicalPath)
+        if (samePath(document->canonicalPath, canonicalPath))
             return document->id;
     }
     return std::nullopt;

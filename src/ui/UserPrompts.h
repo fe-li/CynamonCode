@@ -66,6 +66,11 @@ public:
     virtual bool askOpenLargeFile(QWidget *parent, const QString &path, qint64 bytes) = 0;
     // Potwierdzenie „Zamień we wszystkich otwartych” (D038).
     virtual bool askReplaceInAll(QWidget *parent, int matches, int documents) = 0;
+    // Plik spoza UTF-8: otworzyć jako Windows-1250? (D051)
+    virtual bool askOpenAsWindows1250(QWidget *parent, const QString &path) = 0;
+    // Znaku nie da się zapisać w Windows-1250: zapisać dokument jako UTF-8?
+    virtual bool askSaveAsUtf8(QWidget *parent, const QString &documentName,
+                               const QString &character) = 0;
 };
 
 class DialogPrompts final : public UserPrompts
@@ -88,6 +93,9 @@ public:
     QString askFolder(QWidget *parent, const QString &current) override;
     bool askOpenLargeFile(QWidget *parent, const QString &path, qint64 bytes) override;
     bool askReplaceInAll(QWidget *parent, int matches, int documents) override;
+    bool askOpenAsWindows1250(QWidget *parent, const QString &path) override;
+    bool askSaveAsUtf8(QWidget *parent, const QString &documentName,
+                       const QString &character) override;
 };
 
 } // namespace cynamoncode

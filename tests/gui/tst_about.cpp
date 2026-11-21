@@ -59,7 +59,7 @@ void TestAbout::aboutDialogShowsProgramInfo()
     };
     QCOMPARE(text("nameLabel"), QStringLiteral("CynamonCode"));
     QCOMPARE(text("versionLabel"), QStringLiteral("Wersja %1").arg(AppInfo::version()));
-    QCOMPARE(AppInfo::version(), QStringLiteral("1.0.0"));
+    QCOMPARE(AppInfo::version(), QStringLiteral("1.1.0"));
     QCOMPARE(text("authorLabel"), QStringLiteral("Autor: Kamil Feliszewski"));
     QVERIFY(text("websiteLabel").contains(QStringLiteral("href=\"https://www.feliszewski.pl\"")));
     QVERIFY(text("websiteLabel").contains(QStringLiteral("www.feliszewski.pl</a>")));

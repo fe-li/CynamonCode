@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # SPDX-FileCopyrightText: 2026 Kamil Feliszewski
 
-# Pakiet .deb przez CPack (D044) i archiwum źródeł (GPL — kompletne źródła).
+# Pakiety przez CPack i archiwum źródeł (GPL — kompletne źródła):
+# Linux — .deb (D044), Windows — instalator NSIS i .zip, macOS — .dmg (D050).
 #
 #   cmake --preset release && cmake --build --preset release
 #   cpack --config build-release/CPackConfig.cmake -B build-release/pakiety
@@ -21,12 +22,26 @@ string(JOIN "\n" CPACK_PACKAGE_DESCRIPTION
     "panel, session restore and configurable shortcuts. It deliberately offers"
     "no code completion, no linting and never runs the files you open."
     ""
-    "Files are handled safely: UTF-8 only, atomic saving and detection of"
-    "changes made by other programs.")
+    "Files are handled safely: UTF-8 (and Windows-1250 on request) without"
+    "silent byte changes, atomic saving and detection of changes made by other"
+    "programs.")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 set(CPACK_STRIP_FILES ON)
 
-set(CPACK_GENERATOR "DEB")
+if(WIN32)
+    include(${CMAKE_CURRENT_LIST_DIR}/PackagingWindows.cmake)
+elseif(APPLE)
+    set(CPACK_GENERATOR "DragNDrop")
+    set(CPACK_PACKAGE_FILE_NAME "CynamonCode-${PROJECT_VERSION}-macOS")
+    set(CPACK_DMG_VOLUME_NAME "CynamonCode")
+    # Umowa licencyjna w DMG wymaga narzędzi usuniętych z nowych wersji macOS;
+    # licencja GPL jest w pakiecie .app i w repozytorium.
+    set(CPACK_DMG_SLA_USE_RESOURCE_FILE_LICENSE OFF)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(CPACK_GENERATOR "DEB")
+endif()
 # Prefiks /usr to domyślna wartość generatora DEB; ustawiony globalnie trafiłby
 # też do archiwum źródeł.
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT) # cynamoncode_<wersja>_<arch>.deb
