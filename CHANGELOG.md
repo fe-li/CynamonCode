@@ -4,7 +4,9 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/). Wersj
 
 ## [Niewydane]
 
-Wersja 1.1.0 w przygotowaniu.
+## [1.1.0] — 2026-11-21
+
+Wersje dla Windows i macOS oraz pliki Windows-1250. Tag `v1.1.0`.
 
 ### Dodano (2026-11-21)
 
