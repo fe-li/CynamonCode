@@ -175,8 +175,13 @@ jobs:
 
       - name: Pakiet .dmg
         run: |
-          cpack --config build/CPackConfig.cmake -B build/pakiety
+          # hdiutil na maszynach GitHuba bywa chwilowo zajęte („Resource busy”) — ponowienia.
+          for attempt in 1 2 3 4 5; do
+            if cpack --config build/CPackConfig.cmake -B build/pakiety; then break; fi
+            echo "Próba $attempt nieudana, ponowienie za 15 s"; sleep 15
+          done
           ls -la build/pakiety
+          ls build/pakiety/*.dmg
 
       - name: Próba pakietu .dmg (biblioteki w pakiecie .app)
         run: |
