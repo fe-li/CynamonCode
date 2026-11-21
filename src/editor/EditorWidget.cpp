@@ -24,8 +24,8 @@
 namespace cynamoncode {
 
 namespace {
-constexpr int LineNumberMargin = 0;
-constexpr int SymbolMargin = 1;
+// Numery marginesów QScintilli.
+enum Margin : int { LineNumberMargin = 0, SymbolMargin = 1 };
 
 // Elementy puste HTML — nie mają znacznika zamykającego, więc nie otwierają bloku.
 bool isVoidHtmlElement(const QString &name)

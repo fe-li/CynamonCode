@@ -39,7 +39,7 @@ set(_uninstall "")
 string(APPEND _install "WriteRegStr SHCTX '${_app}' 'FriendlyAppName' 'CynamonCode'\n")
 string(APPEND _install "WriteRegStr SHCTX '${_app}\\\\DefaultIcon' '' '${_exe},0'\n")
 string(APPEND _install
-    "WriteRegStr SHCTX '${_app}\\\\shell\\\\open\\\\command' '' '`${_exe}` `%1`'\n")
+    "WriteRegStr SHCTX '${_app}\\\\shell\\\\open\\\\command' '' '\\\"${_exe}\\\" \\\"%1\\\"'\n")
 foreach(_ext IN LISTS _cynamoncode_extensions)
     string(APPEND _install "WriteRegStr SHCTX '${_app}\\\\SupportedTypes' '.${_ext}' ''\n")
     set(_list "Software\\\\Classes\\\\.${_ext}\\\\OpenWithList\\\\cynamoncode.exe")
