@@ -67,7 +67,7 @@ Pliki nie mają podpisu cyfrowego, więc Windows SmartScreen może pokazać „S
 
 ### macOS (12 Monterey lub nowszy, Apple Silicon i Intel)
 
-Otwórz `CynamonCode-1.1.0-macOS.dmg` i przeciągnij **CynamonCode** do **Programy**. Aplikacja nie jest podpisana przez Apple, więc pierwsze uruchomienie zostanie zablokowane: kliknij aplikację prawym przyciskiem → **Otwórz** → **Otwórz** (albo zezwól w Ustawieniach systemowych → Prywatność i ochrona).
+Otwórz `CynamonCode-1.1.0-macOS.dmg` i przeciągnij **CynamonCode** do **Programy**. Aplikacja nie jest podpisana przez Apple, więc przy pierwszym uruchomieniu macOS ostrzeże, że nie może jej zweryfikować. Otwórz **Ustawienia systemowe → Prywatność i ochrona** i wybierz **Otwórz mimo to**. W macOS 14 i starszych wystarczy kliknąć aplikację prawym przyciskiem → **Otwórz** → **Otwórz**.
 
 Żaden pakiet nie zmienia domyślnych programów ani ustawień systemu.
 

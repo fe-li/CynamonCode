@@ -67,7 +67,7 @@ The files are not code-signed, so Windows SmartScreen may show “Windows protec
 
 ### macOS (12 Monterey or newer, Apple Silicon and Intel)
 
-Open `CynamonCode-1.1.0-macOS.dmg` and drag **CynamonCode** to **Applications**. The app is not signed by Apple, so the first start is blocked: right-click the app → **Open** → **Open** (or allow it in System Settings → Privacy & Security).
+Open `CynamonCode-1.1.0-macOS.dmg` and drag **CynamonCode** to **Applications**. The app is not signed by Apple, so on first start macOS warns that it cannot verify it. Open **System Settings → Privacy & Security** and choose **Open Anyway**. On macOS 14 and older, right-clicking the app → **Open** → **Open** is enough.
 
 None of the packages changes default applications or system settings.
 
